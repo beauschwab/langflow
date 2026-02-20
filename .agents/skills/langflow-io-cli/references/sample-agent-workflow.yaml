@@ -1,0 +1,38 @@
+# Reference YAML payload for:
+#   python -m langflow io import-flows --file-path ./sample-agent-workflow.yaml
+#
+# This matches the API upload shape used by /api/v1/flows/upload/.
+# You can provide a single flow object or a `flows` array.
+
+flows:
+  - name: "Sample Agent Workflow"
+    description: "Reference YAML spec for a simple agent-style workflow."
+    endpoint_name: "sample-agent-workflow"
+    data:
+      nodes:
+        - id: "chat-input-1"
+          type: "ChatInput"
+          position:
+            x: 140
+            y: 180
+          data:
+            id: "chat-input-1"
+            node:
+              display_name: "Chat Input"
+              description: "Entry point for user prompt text."
+        - id: "chat-output-1"
+          type: "ChatOutput"
+          position:
+            x: 460
+            y: 180
+          data:
+            id: "chat-output-1"
+            node:
+              display_name: "Chat Output"
+              description: "Terminal output for assistant response."
+      edges:
+        - id: "edge-chat-input-to-chat-output"
+          source: "chat-input-1"
+          target: "chat-output-1"
+          sourceHandle: "message"
+          targetHandle: "input_value"

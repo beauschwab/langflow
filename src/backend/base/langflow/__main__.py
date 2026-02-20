@@ -1,5 +1,6 @@
 import asyncio
 import inspect
+import json
 import os
 import platform
 import signal
@@ -13,6 +14,7 @@ from pathlib import Path
 import click
 import httpx
 import typer
+import yaml
 from dotenv import load_dotenv
 from httpx import HTTPError
 from multiprocess import cpu_count
@@ -38,6 +40,175 @@ from langflow.utils.version import is_pre_release as langflow_is_pre_release
 console = Console()
 
 app = typer.Typer(no_args_is_help=True)
+io_app = typer.Typer(help="Import, export, and inspect Langflow state via API.")
+
+
+def _strip_trailing_slash(base_url: str) -> str:
+    return base_url.rstrip("/")
+
+
+def _api_headers(api_key: str | None) -> dict[str, str]:
+    headers: dict[str, str] = {}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+    return headers
+
+
+def _resource_count(payload: object) -> int:
+    """Return a count for list- or dict-shaped API responses.
+
+    For paginated dictionaries, this prefers `len(payload["items"])`.
+    For other dictionaries, this returns the number of top-level keys.
+    Non-list/dict payloads return 0.
+    """
+    if isinstance(payload, list):
+        return len(payload)
+    if isinstance(payload, dict):
+        if isinstance(payload.get("items"), list):
+            return len(payload["items"])
+        return len(payload)
+    return 0
+
+
+def _extract_error_message(exc: httpx.HTTPStatusError) -> str:
+    """Extract a readable error message from an HTTPStatusError.
+
+    Returns `response.json()["detail"]` when available, otherwise falls back
+    to the raw response text.
+    """
+    detail = exc.response.text
+    with suppress(Exception):
+        parsed = exc.response.json()
+        if isinstance(parsed, dict) and "detail" in parsed:
+            detail = str(parsed["detail"])
+    return detail
+
+
+def _file_mime_type(file_path: Path) -> str:
+    return "application/x-yaml" if file_path.suffix.lower() in {".yaml", ".yml"} else "application/json"
+
+
+@io_app.command("state")
+def io_state(
+    *,
+    base_url: str = typer.Option("http://127.0.0.1:7860", help="Langflow server base URL."),
+    api_key: str | None = typer.Option(None, help="API key for authenticated endpoints."),
+):
+    """Summarize current server state across common resources."""
+    resources = {
+        "flows": "/api/v1/flows/?get_all=true&header_flows=true",
+        "agents": "/api/v1/agents/",
+        "folders": "/api/v1/folders/",
+        "variables": "/api/v1/variables/",
+    }
+    table = Table(title="Langflow State Snapshot")
+    table.add_column("Resource")
+    table.add_column("Count", justify="right")
+    table.add_column("Status")
+    with httpx.Client(timeout=30.0) as client:
+        for name, path in resources.items():
+            try:
+                response = client.get(f"{_strip_trailing_slash(base_url)}{path}", headers=_api_headers(api_key))
+                response.raise_for_status()
+                table.add_row(name, str(_resource_count(response.json())), "ok")
+            except httpx.HTTPStatusError as exc:
+                table.add_row(name, "0", f"error: {exc.response.status_code}")
+            except httpx.HTTPError:
+                table.add_row(name, "0", "error: request failed")
+    console.print(table)
+
+
+@io_app.command("snapshot")
+def io_snapshot(
+    *,
+    output: Path = typer.Option(..., help="Output file path for full snapshot (.json|.yaml|.yml)."),
+    base_url: str = typer.Option("http://127.0.0.1:7860", help="Langflow server base URL."),
+    api_key: str | None = typer.Option(None, help="API key for authenticated endpoints."),
+):
+    """Export a multi-resource snapshot for copy/modify workflows."""
+    resources = {
+        "flows": "/api/v1/flows/?get_all=true",
+        "agents": "/api/v1/agents/",
+        "folders": "/api/v1/folders/",
+        "variables": "/api/v1/variables/",
+    }
+    snapshot: dict[str, object] = {}
+    with httpx.Client(timeout=30.0) as client:
+        for name, path in resources.items():
+            response = client.get(f"{_strip_trailing_slash(base_url)}{path}", headers=_api_headers(api_key))
+            response.raise_for_status()
+            snapshot[name] = response.json()
+    output.parent.mkdir(parents=True, exist_ok=True)
+    if output.suffix.lower() in {".yaml", ".yml"}:
+        output.write_text(yaml.safe_dump(snapshot, sort_keys=False, allow_unicode=True), encoding="utf-8")
+    else:
+        output.write_text(json.dumps(snapshot, indent=2), encoding="utf-8")
+    typer.echo(f"Snapshot written to {output}")
+
+
+@io_app.command("import-flows")
+def io_import_flows(
+    *,
+    file_path: Path = typer.Option(..., help="Flow file to import (.json|.yaml|.yml)."),
+    base_url: str = typer.Option("http://127.0.0.1:7860", help="Langflow server base URL."),
+    api_key: str | None = typer.Option(None, help="API key for authenticated endpoints."),
+    folder_id: str | None = typer.Option(None, help="Optional folder UUID target for imported flows."),
+):
+    """Import flow definitions from JSON or YAML through API."""
+    if not file_path.exists():
+        raise typer.BadParameter(f"File not found: {file_path}")
+    params = {"folder_id": folder_id} if folder_id else {}
+    with httpx.Client(timeout=60.0) as client:
+        response = client.post(
+            f"{_strip_trailing_slash(base_url)}/api/v1/flows/upload/",
+            files={"file": (file_path.name, file_path.read_bytes(), _file_mime_type(file_path))},
+            headers=_api_headers(api_key),
+            params=params,
+        )
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            typer.echo(_extract_error_message(exc))
+            raise typer.Exit(1) from exc
+    payload = response.json()
+    imported_count = len(payload) if isinstance(payload, list) else 1
+    typer.echo(f"Imported {imported_count} flow(s).")
+
+
+@io_app.command("export-flows")
+def io_export_flows(
+    *,
+    output: Path = typer.Option(..., help="Output file path."),
+    flow_id: list[str] = typer.Option(..., help="Flow UUID to export. Repeat --flow-id for multiple flows."),
+    file_format: str = typer.Option("json", help="Export format: json or yaml."),
+    base_url: str = typer.Option("http://127.0.0.1:7860", help="Langflow server base URL."),
+    api_key: str | None = typer.Option(None, help="API key for authenticated endpoints."),
+):
+    """Export one or more flows as JSON or YAML."""
+    normalized_format = file_format.lower()
+    if normalized_format not in {"json", "yaml", "yml"}:
+        raise typer.BadParameter("file_format must be one of: json, yaml, yml")
+    with httpx.Client(timeout=60.0) as client:
+        response = client.post(
+            f"{_strip_trailing_slash(base_url)}/api/v1/flows/download/",
+            params={"file_format": normalized_format},
+            json=flow_id,
+            headers=_api_headers(api_key),
+        )
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            typer.echo(_extract_error_message(exc))
+            raise typer.Exit(1) from exc
+    output.parent.mkdir(parents=True, exist_ok=True)
+    content_type = response.headers.get("content-type", "")
+    if "zip" in content_type:
+        output.write_bytes(response.content)
+    elif normalized_format in {"yaml", "yml"}:
+        output.write_text(response.text, encoding="utf-8")
+    else:
+        output.write_text(json.dumps(response.json(), indent=2), encoding="utf-8")
+    typer.echo(f"Export written to {output}")
 
 
 def get_number_of_workers(workers=None):
@@ -602,6 +773,9 @@ def show_version(*, value: bool):
         package = (raw_info or {}).get("package", "Novaflow")
         typer.echo(f"{package.replace(' ', '-').lower()} {version}")
         raise typer.Exit
+
+
+app.add_typer(io_app, name="io")
 
 
 @app.callback()

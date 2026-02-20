@@ -67,7 +67,8 @@ From `controllers/API/helpers/constants.ts`:
 - `GET /api/v1/flows/basic_examples`
 - `GET /api/v1/flows/public_flow/{id}`
 - `POST /api/v1/flows/download/`
-- `POST /api/v1/flows/upload`
+- `POST /api/v1/flows/upload` (accepts JSON or YAML payload files)
+- `POST /api/v1/flows/download/?file_format=yaml` (exports YAML; default remains JSON)
 
 ## Flow build/execution + events
 - `POST /api/v1/build/{flow_id}/vertices`
@@ -148,4 +149,3 @@ From `controllers/API/helpers/constants.ts`:
 
 - GitHub API: `https://api.github.com/repos/...` (store/github metadata)
 - Raw GitHub content domain for examples
-

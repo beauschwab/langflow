@@ -1,9 +1,12 @@
 import json
+import zipfile
+from io import BytesIO
 from typing import NamedTuple
 from uuid import UUID, uuid4
 
 import orjson
 import pytest
+import yaml
 from httpx import AsyncClient
 from langflow.api.v1.schemas import FlowListCreate, ResultDataResponse
 from langflow.graph.utils import log_transaction, log_vertex_build
@@ -521,6 +524,26 @@ async def test_upload_file(client: AsyncClient, json_flow: str, logged_in_header
 
 
 @pytest.mark.usefixtures("session")
+async def test_upload_yaml_file(client: AsyncClient, json_flow: str, logged_in_headers):
+    flow = orjson.loads(json_flow)
+    data = flow["data"]
+    flow_unique_name = str(uuid4())
+    flow_list = FlowListCreate(flows=[FlowCreate(name=flow_unique_name, description="description", data=data)])
+    file_contents = yaml.safe_dump(flow_list.dict(), sort_keys=False).encode("utf-8")
+    response = await client.post(
+        "api/v1/flows/upload/",
+        files={"file": ("examples.yaml", file_contents, "application/x-yaml")},
+        headers=logged_in_headers,
+    )
+    assert response.status_code == 201
+    response_data = response.json()
+    assert len(response_data) == 1
+    assert flow_unique_name in response_data[0]["name"]
+    assert response_data[0]["description"] == "description"
+    assert response_data[0]["data"] == data
+
+
+@pytest.mark.usefixtures("session")
 async def test_download_file(
     client: AsyncClient,
     json_flow,
@@ -561,6 +584,47 @@ async def test_download_file(
     # Since the endpoint now returns a zip file, we need to check the content type and the filename in the headers
     assert response.headers["Content-Type"] == "application/x-zip-compressed"
     assert "attachment; filename=" in response.headers["Content-Disposition"]
+
+
+@pytest.mark.usefixtures("session")
+async def test_download_file_yaml(
+    client: AsyncClient,
+    json_flow,
+    active_user,
+    logged_in_headers,
+):
+    flow = orjson.loads(json_flow)
+    data = flow["data"]
+    flow_unique_name = str(uuid4())
+    flow_2_unique_name = str(uuid4())
+    flow_list = FlowListCreate(
+        flows=[
+            FlowCreate(name=flow_unique_name, description="description", data=data),
+            FlowCreate(name=flow_2_unique_name, description="description", data=data),
+        ]
+    )
+    db_manager = get_db_service()
+    async with session_getter(db_manager) as _session:
+        saved_flows = []
+        for flow in flow_list.flows:
+            flow.user_id = active_user.id
+            db_flow = Flow.model_validate(flow, from_attributes=True)
+            _session.add(db_flow)
+            saved_flows.append(db_flow)
+        await _session.commit()
+        flow_ids_json = json.dumps([str(db_flow.id) for db_flow in saved_flows])
+        response = await client.post(
+            "api/v1/flows/download/?file_format=yaml",
+            data=flow_ids_json,
+            headers={**logged_in_headers, "Content-Type": "application/json"},
+        )
+    assert response.status_code == 200, response.text
+    assert response.headers["Content-Type"] == "application/x-zip-compressed"
+    with zipfile.ZipFile(BytesIO(response.content), "r") as zip_file:
+        assert sorted(zip_file.namelist()) == sorted([f"{flow_unique_name}.yaml", f"{flow_2_unique_name}.yaml"])
+        for file_name in zip_file.namelist():
+            content = yaml.safe_load(zip_file.read(file_name))
+            assert content["name"] in {flow_unique_name, flow_2_unique_name}
 
 
 @pytest.mark.usefixtures("active_user")
