@@ -16,16 +16,16 @@ class _DBService:
 
 
 class _StorageService:
-    async def list_files(self, flow_id):  # noqa: ARG002
+    async def list_files(self, _flow_id):  # noqa: ARG002
         return ["report.csv"]
 
-    async def get_file(self, flow_id, file_name):  # noqa: ARG002
+    async def get_file(self, _flow_id, _file_name):  # noqa: ARG002
         return b"content"
 
 
 class _SettingsService:
     class _Settings:
-        holst = "localhost"
+        host = "localhost"
         port = 7860
 
     settings = _Settings()
@@ -64,8 +64,9 @@ async def test_mcp_list_tools_scopes_to_current_user(async_session, monkeypatch)
 
 
 async def test_mcp_read_resource_rejects_cross_user_flow_access(async_session, monkeypatch):
-    _owner_user, owner_flow = await _create_user_with_flow(async_session, username="mcp-owner", flow_name="owner-flow")
+    owner_user, owner_flow = await _create_user_with_flow(async_session, username="mcp-owner", flow_name="owner-flow")
     other_user, _ = await _create_user_with_flow(async_session, username="mcp-other", flow_name="other-flow")
+    assert owner_user.id != other_user.id
 
     monkeypatch.setattr(mcp, "get_db_service", lambda: _DBService(async_session))
     monkeypatch.setattr(mcp, "get_storage_service", lambda: _StorageService())

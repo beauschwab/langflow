@@ -159,15 +159,24 @@ async def handle_read_resource(uri: str) -> bytes:
             raise ValueError(msg)
 
         flow_id = path_parts[-2]
-        flow_uuid = UUID(flow_id)
+        try:
+            flow_uuid = UUID(flow_id)
+        except ValueError as e:
+            msg = "Invalid flow ID format"
+            raise ValueError(msg) from e
         filename = unquote(path_parts[-1])  # URL decode the filename
 
-        current_user = current_user_ctx.get()
+        try:
+            current_user = current_user_ctx.get()
+        except LookupError:
+            msg = "No authenticated user context available."
+            raise ValueError(msg) from None
         db_service = get_db_service()
         async with db_service.with_session() as session:
             flow = await session.get(Flow, flow_uuid)
-            if not flow or flow.user_id != current_user.id:
-                msg = f"Flow {flow_id} not found"
+            if not flow or flow.user_id is None or flow.user_id != current_user.id:
+                # Intentionally return a not-found style error for both missing and unauthorized flows.
+                msg = "Flow not found"
                 raise ValueError(msg)
 
         storage_service = get_storage_service()
@@ -202,9 +211,6 @@ async def handle_list_tools():
             flows = (await session.exec(select(Flow).where(Flow.user_id == current_user.id))).all()
 
             for flow in flows:
-                if flow.user_id is None:
-                    continue
-
                 tool = types.Tool(
                     name=flow.name,
                     description=f"{flow.id}: {flow.description}"
