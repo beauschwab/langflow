@@ -17,20 +17,12 @@ import { usePostAddAgent } from "@/controllers/API/queries/agents";
 import useAlertStore from "@/stores/alertStore";
 import { AgentCreateType } from "@/types/agents";
 import { useState } from "react";
+import { AVAILABLE_TOOLS } from "./constants";
 
 type CreateAgentDialogProps = {
   open: boolean;
   onClose: () => void;
 };
-
-const AVAILABLE_TOOLS = [
-  {
-    id: "SharePointFilesLoader",
-    name: "SharePoint Files Loader",
-    description:
-      "Load files from SharePoint document libraries using Microsoft Graph.",
-  },
-];
 
 export default function CreateAgentDialog({
   open,
@@ -55,7 +47,7 @@ export default function CreateAgentDialog({
       name: name.trim(),
       description: description.trim() || null,
       agent_type: agentType.trim() || null,
-      tools: selectedTools.length ? selectedTools : null,
+      tools: selectedTools,
     };
 
     createAgent(payload, {
@@ -136,7 +128,7 @@ export default function CreateAgentDialog({
                           : [...prev, tool.id],
                       )
                     }
-                    className="text-left"
+                    className="text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     data-testid={`tool-card-${tool.id}`}
                     aria-label={`${isSelected ? "Deselect" : "Select"} ${tool.name} tool`}
                     aria-pressed={isSelected}

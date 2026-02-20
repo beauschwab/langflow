@@ -12,7 +12,7 @@ class SharePointFilesLoaderComponent(Component):
     display_name = "SharePoint Files Loader"
     description = "Loads files from SharePoint document libraries using Microsoft Graph."
     documentation = "https://learn.microsoft.com/graph/api/resources/sharepoint"
-    icon = "Microsoft"
+    icon = "SharePoint"
     name = "SharePointFilesLoader"
 
     inputs = [
