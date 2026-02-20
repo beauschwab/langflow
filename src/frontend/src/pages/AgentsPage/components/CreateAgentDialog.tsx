@@ -1,4 +1,10 @@
 import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -17,6 +23,15 @@ type CreateAgentDialogProps = {
   onClose: () => void;
 };
 
+const AVAILABLE_TOOLS = [
+  {
+    id: "SharePointFilesLoader",
+    name: "SharePoint Files Loader",
+    description:
+      "Load files from SharePoint document libraries using Microsoft Graph.",
+  },
+];
+
 export default function CreateAgentDialog({
   open,
   onClose,
@@ -24,6 +39,7 @@ export default function CreateAgentDialog({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [agentType, setAgentType] = useState("");
+  const [selectedTools, setSelectedTools] = useState<string[]>([]);
   const setSuccessData = useAlertStore((state) => state.setSuccessData);
   const setErrorData = useAlertStore((state) => state.setErrorData);
 
@@ -39,6 +55,7 @@ export default function CreateAgentDialog({
       name: name.trim(),
       description: description.trim() || null,
       agent_type: agentType.trim() || null,
+      tools: selectedTools.length ? selectedTools : null,
     };
 
     createAgent(payload, {
@@ -47,6 +64,7 @@ export default function CreateAgentDialog({
         setName("");
         setDescription("");
         setAgentType("");
+        setSelectedTools([]);
         onClose();
       },
       onError: (err: any) => {
@@ -101,6 +119,42 @@ export default function CreateAgentDialog({
               value={agentType}
               onChange={(e) => setAgentType(e.target.value)}
             />
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium">Tools</label>
+            <div className="grid gap-2">
+              {AVAILABLE_TOOLS.map((tool) => {
+                const isSelected = selectedTools.includes(tool.id);
+                return (
+                  <button
+                    key={tool.id}
+                    type="button"
+                    onClick={() =>
+                      setSelectedTools((prev) =>
+                        prev.includes(tool.id)
+                          ? prev.filter((item) => item !== tool.id)
+                          : [...prev, tool.id],
+                      )
+                    }
+                    className="text-left"
+                    data-testid={`tool-card-${tool.id}`}
+                    aria-label={`${isSelected ? "Deselect" : "Select"} ${tool.name} tool`}
+                    aria-pressed={isSelected}
+                  >
+                    <Card
+                      className={
+                        isSelected ? "border-primary bg-primary/5" : ""
+                      }
+                    >
+                      <CardHeader className="py-3">
+                        <CardTitle className="text-sm">{tool.name}</CardTitle>
+                        <CardDescription>{tool.description}</CardDescription>
+                      </CardHeader>
+                    </Card>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
         <DialogFooter>

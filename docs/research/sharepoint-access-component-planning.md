@@ -9,6 +9,8 @@ Recommended initial scope is a **read-only SharePoint Files Loader** that suppor
 - Implemented component: `/home/runner/work/langflow/langflow/src/backend/base/langflow/components/sharepoint/sharepoint_files.py`
 - Component export: `/home/runner/work/langflow/langflow/src/backend/base/langflow/components/sharepoint/__init__.py`
 - Unit tests: `/home/runner/work/langflow/langflow/src/backend/tests/unit/components/data/test_sharepoint_files_loader.py`
+- Frontend workflow-node bundle registration: `/home/runner/work/langflow/langflow/src/frontend/src/utils/styleUtils.ts`
+- Frontend agent tool card selection: `/home/runner/work/langflow/langflow/src/frontend/src/pages/AgentsPage/components/CreateAgentDialog.tsx`
 
 ## Repository locations reviewed
 - `/home/runner/work/langflow/langflow/src/backend/base/langflow/components/google/google_drive.py`
