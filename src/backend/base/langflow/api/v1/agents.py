@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import col, select
 
 from langflow.api.utils import CurrentActiveUser, DbSession
@@ -30,9 +31,9 @@ async def create_agent(
         await session.commit()
         await session.refresh(db_agent)
         return db_agent
+    except IntegrityError as e:
+        raise HTTPException(status_code=400, detail="Agent name must be unique") from e
     except Exception as e:
-        if "UNIQUE constraint failed" in str(e):
-            raise HTTPException(status_code=400, detail="Agent name must be unique") from e
         if hasattr(e, "errors"):
             raise HTTPException(status_code=400, detail="Invalid agent data") from e
         if isinstance(e, HTTPException):
