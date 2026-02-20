@@ -174,6 +174,8 @@ class Settings(BaseSettings):
     """List of environment variables to get from the environment and store in the database."""
     worker_timeout: int = 300
     """Timeout for the API calls in seconds."""
+    tenant_isolation_enabled: bool = False
+    """Feature flag for Phase 2 tenant isolation rollout."""
     frontend_timeout: int = 0
     """Timeout for the frontend API calls in seconds."""
     user_agent: str = "langflow"
