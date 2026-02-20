@@ -217,6 +217,87 @@ Because Alembic is SQL-only:
 ### Rollback tests
 - Verify switching `persistence_backend` back to SQL works without code changes.
 
+## Full implementation test plan (detailed)
+
+### Test matrix by phase
+
+| Phase | Scope | Unit tests | API tests | Integration tests | Performance tests |
+|---|---|---|---|---|---|
+| 0 | Settings + factory wiring | settings parsing, backend selector default/fallback | N/A | app startup with SQL default | baseline startup time |
+| 1 | Flow/folder persistence | create/update/list/name uniqueness | `/api/v1/flows` CRUD parity | startup + flow CRUD smoke in mongo mode | p50/p95 flow CRUD latency |
+| 2 | Message persistence | append/update/query filters | chat/build endpoints using messages | chat session replay in mongo mode | message write/read throughput |
+| 3 | Transactions/vertex-builds | retention logic and ordering | monitor/history endpoint parity | retention cleanup execution in mongo mode | retention job runtime |
+| 4 | Users/API keys/variables | auth lookup + variable read/write parity | login/users/variable endpoint parity | authenticated E2E flow run | auth path latency |
+| 5 | Hardening + rollout | retry/failure path behavior | mixed backend smoke tests | canary rollout + fallback verification | comparative SQL vs Mongo benchmark |
+
+### Contract parity test suite structure
+- `tests/unit/persistence_contract/`
+  - `test_flows_contract.py`
+  - `test_folders_contract.py`
+  - `test_messages_contract.py`
+  - `test_transactions_contract.py`
+  - `test_vertex_builds_contract.py`
+  - `test_users_auth_contract.py`
+  - `test_variables_contract.py`
+- Run each suite against both implementations:
+  - SQL implementation fixture
+  - Mongo implementation fixture
+
+### API parity test matrix (minimum required)
+- Flow lifecycle:
+  - create, read, list, update, delete
+  - endpoint-name lookup path
+  - uniqueness conflict behavior
+- Message lifecycle:
+  - create/update/query by flow/session
+- Monitoring:
+  - transactions list order
+  - vertex-build list and delete behavior
+- Auth and variables:
+  - active user fetch paths
+  - API key create/list/revoke
+  - variable create/read/update/delete
+
+### CI implementation recommendations
+- Add backend matrix job:
+  - `PERSISTENCE_BACKEND=sql`
+  - `PERSISTENCE_BACKEND=mongo`
+- For mongo matrix leg:
+  - Provision ephemeral MongoDB service in CI.
+  - Run contract tests and selected API/integration suites.
+- Keep existing SQL tests as mandatory gate while Mongo mode is maturing.
+
+### Acceptance criteria for "full implementation tests"
+1. Contract tests pass for SQL and Mongo implementations.
+2. API parity tests pass for critical endpoints in both backends.
+3. Integration smoke tests pass for startup + authenticated flow run in Mongo mode.
+4. Rollback test confirms SQL fallback works by configuration switch only.
+5. Benchmark report published with SQL vs Mongo p50/p95 latency and error rate.
+
+## Documentation deliverables plan
+
+### Documentation set required before enabling Mongo mode broadly
+1. **Operator guide**
+   - How to configure `persistence_backend`, `mongo_url`, and `mongo_database_name`.
+   - TLS/auth configuration examples and secret-management guidance.
+2. **Migration guide**
+   - How to move from SQL deployments to Mongo mode (including coexistence strategy).
+   - Validation checklist before/after switch.
+3. **Runbook**
+   - Startup/index bootstrap verification.
+   - Failure handling and rollback steps.
+4. **Compatibility guide**
+   - Known differences or unsupported edge cases (if any).
+   - Performance expectations and tuning knobs.
+5. **Testing guide**
+   - How to run contract/API/integration parity suites locally and in CI.
+
+### Documentation acceptance criteria
+- All config keys documented with examples.
+- Rollback steps tested and documented.
+- Production readiness checklist published.
+- CI test matrix and local test commands documented in contributor docs.
+
 ## Risks and mitigations
 - **Risk:** widespread SQL assumptions in callsites.
   - **Mitigation:** incremental vertical slices and contract-first refactor.
@@ -231,4 +312,3 @@ Because Alembic is SQL-only:
 1. Approve this adapter-first architecture and settings contract.
 2. Implement Phase 0 + Phase 1 in a narrow PR focused on flow/folder persistence.
 3. Add shared parity tests early, and enforce them in CI for both backends where environment permits.
-
