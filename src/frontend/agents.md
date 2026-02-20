@@ -9,3 +9,4 @@ This index links to dedicated deep-dive documentation files for the Langflow fro
 3. [Backend API Inventory Called by Frontend](docs/agents/backend-api-inventory.md)
 4. [Comprehensive Frontend Component Inventory](docs/agents/component-inventory.md)
 5. [User Experience Flows and End-to-End User Actions](docs/agents/user-experience-flows.md)
+6. [Node Type Inventory (Descriptions, Ports, and Configuration)](docs/agents/node-type-inventory.md)
