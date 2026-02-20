@@ -395,7 +395,7 @@ def print_banner(host: str, port: int) -> None:
         "[bold][link=https://github.com/langflow-ai/langflow]GitHub Repo[/link][/bold] :star2:"
     )
     telemetry_text = (
-        "We collect anonymous usage data to improve Langflow.\n"
+        "We collect anonymous usage data to improve Novaflow.\n"
         "You can opt-out by setting [bold]DO_NOT_TRACK=true[/bold] in your environment."
     )
     access_link = f"Access [link=http://{host}:{port}]http://{host}:{port}[/link]"
@@ -599,7 +599,8 @@ def show_version(*, value: bool):
         default = "DEV"
         raw_info = get_version_info()
         version = raw_info.get("version", default) if raw_info else default
-        typer.echo(f"langflow {version}")
+        package = raw_info.get("package", "Novaflow") if raw_info else "Novaflow"
+        typer.echo(f"{package.lower()} {version}")
         raise typer.Exit
 
 
