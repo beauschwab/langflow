@@ -73,10 +73,16 @@ class _FakeClient:
     def __exit__(self, exc_type, exc, tb):
         return False
 
-    def get(self, url, headers=None):  # noqa: ARG002
+    def get(self, _url, _headers=None):
+        if not self._responses["GET"]:
+            msg = "No mocked GET responses remaining."
+            raise AssertionError(msg)
         return self._responses["GET"].pop(0)
 
-    def post(self, url, files=None, headers=None, params=None, json=None):  # noqa: ARG002
+    def post(self, _url, _files=None, _headers=None, _params=None, _json=None):
+        if not self._responses["POST"]:
+            msg = "No mocked POST responses remaining."
+            raise AssertionError(msg)
         return self._responses["POST"].pop(0)
 
 

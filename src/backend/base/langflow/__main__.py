@@ -43,7 +43,7 @@ app = typer.Typer(no_args_is_help=True)
 io_app = typer.Typer(help="Import, export, and inspect Langflow state via API.")
 
 
-def _normalized_base_url(base_url: str) -> str:
+def _strip_trailing_slash(base_url: str) -> str:
     return base_url.rstrip("/")
 
 
@@ -54,7 +54,13 @@ def _api_headers(api_key: str | None) -> dict[str, str]:
     return headers
 
 
-def _resource_count(payload) -> int:
+def _resource_count(payload: object) -> int:
+    """Return a count for list- or dict-shaped API responses.
+
+    For paginated dictionaries, this prefers `len(payload["items"])`.
+    For other dictionaries, this returns the number of top-level keys.
+    Non-list/dict payloads return 0.
+    """
     if isinstance(payload, list):
         return len(payload)
     if isinstance(payload, dict):
@@ -65,12 +71,21 @@ def _resource_count(payload) -> int:
 
 
 def _extract_error_message(exc: httpx.HTTPStatusError) -> str:
+    """Extract a readable error message from an HTTPStatusError.
+
+    Returns `response.json()["detail"]` when available, otherwise falls back
+    to the raw response text.
+    """
     detail = exc.response.text
     with suppress(Exception):
         parsed = exc.response.json()
         if isinstance(parsed, dict) and "detail" in parsed:
             detail = str(parsed["detail"])
     return detail
+
+
+def _file_mime_type(file_path: Path) -> str:
+    return "application/x-yaml" if file_path.suffix.lower() in {".yaml", ".yml"} else "application/json"
 
 
 @io_app.command("state")
@@ -93,7 +108,7 @@ def io_state(
     with httpx.Client(timeout=30.0) as client:
         for name, path in resources.items():
             try:
-                response = client.get(f"{_normalized_base_url(base_url)}{path}", headers=_api_headers(api_key))
+                response = client.get(f"{_strip_trailing_slash(base_url)}{path}", headers=_api_headers(api_key))
                 response.raise_for_status()
                 table.add_row(name, str(_resource_count(response.json())), "ok")
             except httpx.HTTPStatusError as exc:
@@ -120,7 +135,7 @@ def io_snapshot(
     snapshot: dict[str, object] = {}
     with httpx.Client(timeout=30.0) as client:
         for name, path in resources.items():
-            response = client.get(f"{_normalized_base_url(base_url)}{path}", headers=_api_headers(api_key))
+            response = client.get(f"{_strip_trailing_slash(base_url)}{path}", headers=_api_headers(api_key))
             response.raise_for_status()
             snapshot[name] = response.json()
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -142,12 +157,11 @@ def io_import_flows(
     """Import flow definitions from JSON or YAML through API."""
     if not file_path.exists():
         raise typer.BadParameter(f"File not found: {file_path}")
-    mime = "application/x-yaml" if file_path.suffix.lower() in {".yaml", ".yml"} else "application/json"
-    params = {"folder_id": folder_id} if folder_id else None
+    params = {"folder_id": folder_id} if folder_id else {}
     with httpx.Client(timeout=60.0) as client:
         response = client.post(
-            f"{_normalized_base_url(base_url)}/api/v1/flows/upload/",
-            files={"file": (file_path.name, file_path.read_bytes(), mime)},
+            f"{_strip_trailing_slash(base_url)}/api/v1/flows/upload/",
+            files={"file": (file_path.name, file_path.read_bytes(), _file_mime_type(file_path))},
             headers=_api_headers(api_key),
             params=params,
         )
@@ -176,7 +190,7 @@ def io_export_flows(
         raise typer.BadParameter("file_format must be one of: json, yaml, yml")
     with httpx.Client(timeout=60.0) as client:
         response = client.post(
-            f"{_normalized_base_url(base_url)}/api/v1/flows/download/",
+            f"{_strip_trailing_slash(base_url)}/api/v1/flows/download/",
             params={"file_format": normalized_format},
             json=flow_id,
             headers=_api_headers(api_key),
