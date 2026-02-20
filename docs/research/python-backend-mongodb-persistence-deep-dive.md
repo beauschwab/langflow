@@ -224,11 +224,11 @@ Because Alembic is SQL-only:
 | Phase | Scope | Unit tests | API tests | Integration tests | Performance tests |
 |---|---|---|---|---|---|
 | 0 | Settings + factory wiring | settings parsing, backend selector default/fallback | N/A | app startup with SQL default | baseline startup time |
-| 1 | Flow/folder persistence | create/update/list/name uniqueness | `/api/v1/flows` CRUD parity | startup + flow CRUD smoke in mongo mode | p50/p95 flow CRUD latency |
-| 2 | Message persistence | append/update/query filters | chat/build endpoints using messages | chat session replay in mongo mode | message write/read throughput |
+| 1 | Flow/folder persistence | create/update/list/name uniqueness | `/api/v1/flows` CRUD parity | Startup + flow CRUD smoke in mongo mode | p50/p95 flow CRUD latency |
+| 2 | Message persistence | append/update/query filters | Chat/build endpoints using messages | Chat session replay in mongo mode | message write/read throughput |
 | 3 | Transactions/vertex-builds | retention logic and ordering | monitor/history endpoint parity | retention cleanup execution in mongo mode | retention job runtime |
-| 4 | Users/API keys/variables | auth lookup + variable read/write parity | login/users/variable endpoint parity | authenticated E2E flow run | auth path latency |
-| 5 | Hardening + rollout | retry/failure path behavior | mixed backend smoke tests | canary rollout + fallback verification | comparative SQL vs Mongo benchmark |
+| 4 | Users/API keys/variables | auth lookup + variable read/write parity | login/users/variable endpoint parity | Authenticated E2E flow run | auth path latency |
+| 5 | Hardening + rollout | retry/failure path behavior | mixed backend smoke tests | Canary rollout + fallback verification | comparative SQL vs Mongo benchmark |
 
 ### Contract parity test suite structure
 - `tests/unit/persistence_contract/`
