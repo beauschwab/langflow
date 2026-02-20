@@ -35,8 +35,16 @@ From `controllers/API/helpers/constants.ts`:
 - `all`
 - `voice`
 - `/flows/public_flow`
+- `agents`
 
 ## 3) Endpoint inventory by domain
+
+## Agents
+- `POST /api/v1/agents/` — Create agent
+- `GET /api/v1/agents/` — List agents (supports `search`, `agent_type` query params)
+- `GET /api/v1/agents/{agent_id}` — Get agent by ID
+- `PATCH /api/v1/agents/{agent_id}` — Update agent
+- `DELETE /api/v1/agents/{agent_id}` — Delete agent
 
 ## Auth / identity
 - `POST /api/v1/login`

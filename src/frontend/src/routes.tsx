@@ -39,6 +39,7 @@ import ViewPage from "./pages/ViewPage";
 const AdminPage = lazy(() => import("./pages/AdminPage"));
 const LoginAdminPage = lazy(() => import("./pages/AdminPage/LoginPage"));
 const DeleteAccountPage = lazy(() => import("./pages/DeleteAccountPage"));
+const AgentsPage = lazy(() => import("./pages/AgentsPage"));
 
 const PlaygroundPage = lazy(() => import("./pages/Playground"));
 
@@ -133,6 +134,7 @@ const router = createBrowserRouter(
                   <Route path="messages" element={<MessagesPage />} />
                   <Route path="store" element={<StoreApiKeyPage />} />
                 </Route>
+                <Route path="agents" element={<AgentsPage />} />
                 <Route
                   path="store"
                   element={

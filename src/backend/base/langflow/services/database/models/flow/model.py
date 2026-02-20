@@ -24,6 +24,7 @@ from langflow.schema import Data
 
 if TYPE_CHECKING:
     from langflow.services.database.models import TransactionTable
+    from langflow.services.database.models.agent import Agent
     from langflow.services.database.models.folder import Folder
     from langflow.services.database.models.message import MessageTable
     from langflow.services.database.models.user import User
@@ -193,6 +194,7 @@ class Flow(FlowBase, table=True):  # type: ignore[call-arg]
     messages: list["MessageTable"] = Relationship(back_populates="flow")
     transactions: list["TransactionTable"] = Relationship(back_populates="flow")
     vertex_builds: list["VertexBuildTable"] = Relationship(back_populates="flow")
+    agents: list["Agent"] = Relationship(back_populates="flow")
 
     def to_data(self):
         serialized = self.model_dump()
