@@ -5,10 +5,11 @@ import json
 import re
 import zipfile
 from datetime import datetime, timezone
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 import orjson
+import yaml
 from aiofile import async_open
 from anyio import Path
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
@@ -415,7 +416,15 @@ async def upload_file(
 ):
     """Upload flows from a file."""
     contents = await file.read()
-    data = orjson.loads(contents)
+    try:
+        data = orjson.loads(contents)
+    except orjson.JSONDecodeError:
+        try:
+            data = yaml.safe_load(contents)
+        except yaml.YAMLError as e:
+            raise HTTPException(status_code=400, detail="Invalid file format. Expected JSON or YAML.") from e
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=400, detail="Invalid file format. Expected a JSON or YAML object.")
     response_list = []
     flow_list = FlowListCreate(**data) if "flows" in data else FlowListCreate(flows=[FlowCreate(**data)])
     # Now we set the user_id for all flows
@@ -485,6 +494,7 @@ async def download_multiple_file(
     flow_ids: list[UUID],
     user: CurrentActiveUser,
     db: DbSession,
+    file_format: Literal["json", "yaml", "yml"] = "json",
 ):
     """Download all flows as a zip file."""
     flows = (await db.exec(select(Flow).where(and_(Flow.user_id == user.id, Flow.id.in_(flow_ids))))).all()  # type: ignore[attr-defined]
@@ -494,6 +504,8 @@ async def download_multiple_file(
 
     flows_without_api_keys = [remove_api_keys(flow.model_dump()) for flow in flows]
 
+    normalized_format = "yaml" if file_format == "yml" else file_format
+
     if len(flows_without_api_keys) > 1:
         # Create a byte stream to hold the ZIP file
         zip_stream = io.BytesIO()
@@ -501,11 +513,12 @@ async def download_multiple_file(
         # Create a ZIP file
         with zipfile.ZipFile(zip_stream, "w") as zip_file:
             for flow in flows_without_api_keys:
-                # Convert the flow object to JSON
-                flow_json = json.dumps(jsonable_encoder(flow))
-
-                # Write the JSON to the ZIP file
-                zip_file.writestr(f"{flow['name']}.json", flow_json)
+                if normalized_format == "json":
+                    flow_content = json.dumps(jsonable_encoder(flow))
+                else:
+                    flow_content = yaml.safe_dump(jsonable_encoder(flow), sort_keys=False, allow_unicode=True)
+                extension = "json" if normalized_format == "json" else "yaml"
+                zip_file.writestr(f"{flow['name']}.{extension}", flow_content)
 
         # Seek to the beginning of the byte stream
         zip_stream.seek(0)
@@ -518,6 +531,13 @@ async def download_multiple_file(
             zip_stream,
             media_type="application/x-zip-compressed",
             headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
+    if normalized_format == "yaml":
+        flow_yaml = yaml.safe_dump(jsonable_encoder(flows_without_api_keys[0]), sort_keys=False, allow_unicode=True)
+        return StreamingResponse(
+            io.BytesIO(flow_yaml.encode("utf-8")),
+            media_type="application/x-yaml",
+            headers={"Content-Disposition": f"attachment; filename={flows_without_api_keys[0]['name']}.yaml"},
         )
     return flows_without_api_keys[0]
 
