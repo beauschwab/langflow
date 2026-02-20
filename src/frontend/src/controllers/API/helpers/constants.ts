@@ -26,6 +26,7 @@ export const URLs = {
   ALL: `all`,
   VOICE: `voice`,
   PUBLIC_FLOW: `/flows/public_flow`,
+  AGENTS: `agents`,
 } as const;
 
 export function getURL(
