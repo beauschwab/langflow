@@ -6,13 +6,13 @@ This document evaluates the [Open Agent Platform frontend UX spec](https://githu
 
 ### Reference artifacts reviewed
 
-| Source | Path / URL |
-|--------|-----------|
-| Open Agent Platform UX spec | `apps/docs/setup/frontend-ux-spec.mdx` (copilot/deep-dive-analysis-frontend branch) |
-| Langflow frontend | `src/frontend/src/` (routes, stores, components) |
-| Langflow backend | `src/backend/base/langflow/` (API, models, services) |
-| Existing research doc | `docs/research/python-backend-langgraph-deep-dive.md` |
-| Frontend architecture docs | `src/frontend/docs/agents/` |
+| Source | Path / URL | Location |
+|--------|-----------|----------|
+| Open Agent Platform UX spec | `apps/docs/setup/frontend-ux-spec.mdx` (copilot/deep-dive-analysis-frontend branch) | [beauschwab/open-agent-platform](https://github.com/beauschwab/open-agent-platform) repo |
+| Langflow frontend | `src/frontend/src/` (routes, stores, components) | This repo |
+| Langflow backend | `src/backend/base/langflow/` (API, models, services) | This repo |
+| LangGraph migration research | `docs/research/python-backend-langgraph-deep-dive.md` | This repo |
+| Frontend architecture docs | `src/frontend/docs/agents/` | This repo |
 
 ---
 
