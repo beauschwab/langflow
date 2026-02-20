@@ -31,10 +31,15 @@ async def test_create_a2a_task(client, logged_in_headers, flow, monkeypatch):
 
 
 async def test_get_a2a_task_status_running(client, logged_in_headers):
+    hold_event = asyncio.Event()
+
+    async def hold_task():
+        await hold_event.wait()
+
     queue_service = get_queue_service()
     task_id = str(uuid.uuid4())
     queue_service.create_queue(task_id)
-    queue_service.start_job(task_id, asyncio.sleep(1))
+    queue_service.start_job(task_id, hold_task())
 
     try:
         response = await client.get(f"api/v1/a2a/tasks/{task_id}", headers=logged_in_headers)
@@ -44,19 +49,27 @@ async def test_get_a2a_task_status_running(client, logged_in_headers):
         assert result["status"] == "running"
         assert result["done"] is False
     finally:
+        hold_event.set()
         await queue_service.cleanup_job(task_id)
 
 
-async def test_cancel_a2a_task(client, logged_in_headers, monkeypatch):
-    async def mock_cancel_flow_build(**_kwargs):
-        return True
+async def test_cancel_a2a_task(client, logged_in_headers):
+    hold_event = asyncio.Event()
 
-    import langflow.api.v1.a2a
+    async def hold_task():
+        await hold_event.wait()
 
-    monkeypatch.setattr(langflow.api.v1.a2a, "cancel_flow_build", mock_cancel_flow_build)
+    queue_service = get_queue_service()
+    task_id = str(uuid.uuid4())
+    queue_service.create_queue(task_id)
+    queue_service.start_job(task_id, hold_task())
 
-    response = await client.post("api/v1/a2a/tasks/task-123/cancel", headers=logged_in_headers)
-    result = response.json()
+    try:
+        response = await client.post(f"api/v1/a2a/tasks/{task_id}/cancel", headers=logged_in_headers)
+        result = response.json()
 
-    assert response.status_code == status.HTTP_200_OK
-    assert result["success"] is True
+        assert response.status_code == status.HTTP_200_OK
+        assert result["success"] is True
+    finally:
+        hold_event.set()
+        await queue_service.cleanup_job(task_id)

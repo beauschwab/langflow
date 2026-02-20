@@ -51,7 +51,7 @@ async def create_task(
     async with session_scope() as session:
         flow = await session.get(Flow, request.flow_id)
         if not flow:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Flow with id {request.flow_id} not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Flow not found: {request.flow_id}")
 
     task_id = await start_flow_build(
         flow_id=request.flow_id,
@@ -94,8 +94,9 @@ async def get_task_status(
     if event_task.done():
         try:
             error = event_task.exception()
-        except asyncio.CancelledError:
-            return A2ATaskStatusResponse(id=task_id, status="cancelled", done=True)
+        except asyncio.InvalidStateError:
+            logger.error(f"Inconsistent task state detected for task_id {task_id}")
+            return A2ATaskStatusResponse(id=task_id, status="failed", done=True, error="Inconsistent task state")
         if error is not None:
             return A2ATaskStatusResponse(id=task_id, status="failed", done=True, error=str(error))
         return A2ATaskStatusResponse(id=task_id, status="completed", done=True)
@@ -126,9 +127,6 @@ async def cancel_task(
         cancellation_success = await cancel_flow_build(job_id=task_id, queue_service=queue_service)
         if cancellation_success:
             return CancelFlowResponse(success=True, message="Task cancelled successfully")
-        return CancelFlowResponse(success=False, message="Failed to cancel task")
-    except asyncio.CancelledError:
-        logger.error(f"Failed to cancel A2A task for task_id {task_id} (CancelledError caught)")
         return CancelFlowResponse(success=False, message="Failed to cancel task")
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
