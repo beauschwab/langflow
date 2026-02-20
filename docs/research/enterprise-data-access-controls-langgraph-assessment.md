@@ -14,19 +14,19 @@ The codebase already has useful foundations (authenticated user model, per-user 
 - LangGraph adapter currently provides orchestration indirection, but not enterprise state-governance controls (checkpoint persistence policy, tenant-aware state stores, approval gates).
 
 ## Scope and artifacts reviewed
-- `/home/runner/work/langflow/langflow/src/backend/base/langflow/processing/orchestrator.py`
-- `/home/runner/work/langflow/langflow/src/backend/base/langflow/processing/process.py`
-- `/home/runner/work/langflow/langflow/src/backend/base/langflow/services/settings/base.py`
-- `/home/runner/work/langflow/langflow/src/backend/base/langflow/services/settings/auth.py`
-- `/home/runner/work/langflow/langflow/src/backend/base/langflow/services/auth/utils.py`
-- `/home/runner/work/langflow/langflow/src/backend/base/langflow/helpers/flow.py`
-- `/home/runner/work/langflow/langflow/src/backend/base/langflow/api/v1/endpoints.py`
-- `/home/runner/work/langflow/langflow/src/backend/base/langflow/api/v1/chat.py`
-- `/home/runner/work/langflow/langflow/src/backend/base/langflow/api/v1/mcp.py`
-- `/home/runner/work/langflow/langflow/src/backend/base/langflow/services/database/models/user/model.py`
-- `/home/runner/work/langflow/langflow/src/backend/base/langflow/services/database/models/flow/model.py`
-- `/home/runner/work/langflow/langflow/src/backend/base/langflow/services/database/models/variable/model.py`
-- `/home/runner/work/langflow/langflow/src/backend/base/langflow/services/variable/service.py`
+- `src/backend/base/langflow/processing/orchestrator.py`
+- `src/backend/base/langflow/processing/process.py`
+- `src/backend/base/langflow/services/settings/base.py`
+- `src/backend/base/langflow/services/settings/auth.py`
+- `src/backend/base/langflow/services/auth/utils.py`
+- `src/backend/base/langflow/helpers/flow.py`
+- `src/backend/base/langflow/api/v1/endpoints.py`
+- `src/backend/base/langflow/api/v1/chat.py`
+- `src/backend/base/langflow/api/v1/mcp.py`
+- `src/backend/base/langflow/services/database/models/user/model.py`
+- `src/backend/base/langflow/services/database/models/flow/model.py`
+- `src/backend/base/langflow/services/database/models/variable/model.py`
+- `src/backend/base/langflow/services/variable/service.py`
 
 ## Current functionality snapshot
 
