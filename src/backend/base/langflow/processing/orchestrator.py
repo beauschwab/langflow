@@ -12,6 +12,8 @@ if TYPE_CHECKING:
     from langflow.graph.graph.base import Graph
     from langflow.schema.schema import InputType
 
+DEFAULT_INPUT_TYPE: InputType = "chat"
+
 
 @dataclass
 class _RunConfig:
@@ -35,7 +37,7 @@ def _normalize_run_configs(
 
     normalized_types = list(types or [])
     for _ in range(len(normalized_inputs) - len(normalized_types)):
-        normalized_types.append("chat")
+        normalized_types.append(DEFAULT_INPUT_TYPE)
 
     return [
         _RunConfig(inputs=run_inputs, components=components, input_type=input_type)
@@ -112,7 +114,7 @@ async def _run_with_langgraph(
     if session_id:
         graph.session_id = session_id
 
-    class OrchestratorState(TypedDict):
+    class OrchestratorState(TypedDict, total=False):
         run_configs: list[_RunConfig]
         run_outputs: list[RunOutputs]
 
@@ -140,5 +142,5 @@ async def _run_with_langgraph(
     workflow.add_edge("execute_graph", END)
 
     app = workflow.compile()
-    result = cast("dict[str, Any]", await app.ainvoke({"run_configs": run_configs, "run_outputs": []}))
+    result = cast("dict[str, Any]", await app.ainvoke({"run_configs": run_configs}))
     return cast("list[RunOutputs]", result.get("run_outputs", []))
