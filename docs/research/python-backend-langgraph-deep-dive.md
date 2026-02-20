@@ -233,3 +233,68 @@ These components expose tool inputs/outputs (`tool_mode=True`) and are part of b
 - legacy/deactivated MCP adapters: `components/deactivated/{mcp_sse.py,mcp_stdio.py}`
 
 This list, together with `components/tools`, represents the backend’s current tool-integration footprint for orchestration and agent execution.
+
+---
+
+## A2A (Google Agent2Agent) backend compliance research and enhancement plan
+
+### Goal
+Bring the Langflow backend graph runtime to practical compliance with the A2A protocol while preserving existing Langflow flow JSON, component/tool contracts, API payloads, and streaming behavior for current clients.
+
+### A2A capability mapping against current Langflow backend
+
+| A2A capability area | Current backend status | Gap | Recommended enhancement |
+|---|---|---|---|
+| Agent discovery / capability advertisement (`AgentCard`-style metadata) | ❌ No dedicated A2A discovery endpoint in current API surface | External agents cannot programmatically discover Langflow runtime capabilities in an A2A format | Add A2A adapter endpoints for capability metadata backed by existing settings/component registries |
+| Task lifecycle (create, get status, cancel, complete) | ⚠️ Partial: build job lifecycle and cancellation already exist (`/build/{job_id}/events`, `/build/{job_id}/cancel`) | Lifecycle is Langflow-specific, not A2A canonical task schema | Add task model adapter and lifecycle routes that map to existing run/build queue + graph execution primitives |
+| Structured message/artifact exchange | ⚠️ Partial: existing message + event models support chat/build updates | No canonical A2A message/artifact envelope | Add schema translation layer (A2A request/response <-> current `RunOutputs` and event payloads) |
+| Streaming / async updates | ✅ Existing event stream infrastructure with stable event envelope (`{"event","data"}`) | Not exposed as A2A task-status streaming contract | Add A2A event projection over existing queue/event manager events |
+| Security profile negotiation | ⚠️ Partial: existing API auth/session model | No explicit A2A auth scheme declaration in discovery metadata | Include declared auth schemes in capability endpoint and enforce existing auth at A2A routes |
+| Protocol versioning | ❌ No A2A version handshake endpoints/fields | Client/server compatibility cannot be negotiated | Add explicit protocol version field(s) and compatibility checks in A2A adapter layer |
+
+### Minimal-change backend implementation strategy
+
+1. **Add an A2A adapter layer (feature-flagged)**
+   - Keep existing flow execution path (`run_graph_internal(...)` -> `run_graph_with_orchestrator(...)`) unchanged.
+   - Introduce new A2A-specific API routes that translate A2A operations into existing internal calls.
+   - Gate with a backend setting (for example, `a2a_enabled`) to keep rollout reversible.
+
+2. **Implement canonical A2A schema adapters**
+   - Add Pydantic models for A2A-facing request/response payloads in backend schema modules.
+   - Provide conversion helpers:
+     - A2A task request -> Langflow run/build request
+     - Langflow `RunOutputs` + events -> A2A task/message/artifact responses
+
+3. **Reuse existing orchestration and queue infrastructure**
+   - Use current job/event infrastructure for long-running and streaming task status.
+   - Use current cancellation semantics and map them to A2A cancel operations.
+   - Keep `Graph`, `RunnableVerticesManager`, and `GraphStateManager` as runtime internals; no immediate behavior changes required for first compliance pass.
+
+4. **Align LangGraph backend path for parity**
+   - Ensure A2A adapter routes through the same orchestrator abstraction so `legacy` and `langgraph` backends behave consistently.
+   - Maintain identical event contract generation from the graph runtime, then project to A2A format at adapter boundaries.
+
+5. **Add conformance-focused tests**
+   - API tests for new A2A routes (discovery, task create/status/cancel, stream).
+   - Translation tests for A2A <-> Langflow schema mapping.
+   - Parity tests proving identical business outputs when backend is `legacy` vs `langgraph` behind A2A adapter endpoints.
+
+### Suggested phased rollout
+
+- **Phase A (discovery + versioning):** publish capability metadata and protocol version fields.
+- **Phase B (task lifecycle):** task creation/status/cancel endpoints backed by existing queue + run path.
+- **Phase C (streaming + artifacts):** map existing event stream and run outputs to A2A-compatible updates.
+- **Phase D (hardening):** auth declaration checks, interoperability tests, and backwards-compatibility verification.
+
+### Architectural guardrails
+
+- Do **not** change existing non-A2A REST contracts used by Langflow UI.
+- Do **not** replace current runtime internals in the first compliance iteration; add adapter boundaries first.
+- Keep orchestrator backend feature flag behavior (`legacy` / `langgraph`) unchanged and reuse it.
+
+### Acceptance criteria for first compliance milestone
+
+- A2A capability/discovery metadata endpoint is available and authenticated.
+- External client can create a task, poll/get task status, stream progress, and cancel task via A2A adapter routes.
+- A2A adapter returns outputs derived from the same underlying graph execution results used by existing Langflow APIs.
+- Existing frontend build/run/event flows remain unchanged.
