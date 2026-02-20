@@ -164,6 +164,9 @@ class Settings(BaseSettings):
     fallback_to_env_var: bool = True
     """If set to True, Global Variables set in the UI will fallback to a environment variable
     with the same name in case Langflow fails to retrieve the variable value."""
+    orchestrator_backend: Literal["legacy", "langgraph"] = "legacy"
+    """Execution orchestrator backend. Use 'legacy' for the current graph runtime and
+    'langgraph' to route graph runs through the LangGraph adapter."""
 
     store_environment_variables: bool = True
     """Whether to store environment variables as Global Variables in the database."""

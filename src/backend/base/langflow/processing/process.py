@@ -6,6 +6,7 @@ from loguru import logger
 from pydantic import BaseModel
 
 from langflow.graph.vertex.base import Vertex
+from langflow.processing.orchestrator import run_graph_with_orchestrator
 from langflow.processing.utils import validate_and_repair_json
 from langflow.schema.graph import InputValue, Tweaks
 from langflow.schema.schema import INPUT_FIELD_NAME
@@ -48,8 +49,10 @@ async def run_graph_internal(
         types.append(input_value_request.type)
 
     fallback_to_env_vars = get_settings_service().settings.fallback_to_env_var
+    orchestrator_backend = get_settings_service().settings.orchestrator_backend
     graph.session_id = effective_session_id
-    run_outputs = await graph.arun(
+    run_outputs = await run_graph_with_orchestrator(
+        graph=graph,
         inputs=inputs_list,
         inputs_components=components,
         types=types,
@@ -58,6 +61,7 @@ async def run_graph_internal(
         session_id=effective_session_id or "",
         fallback_to_env_vars=fallback_to_env_vars,
         event_manager=event_manager,
+        backend=orchestrator_backend,
     )
     return run_outputs, effective_session_id
 
@@ -108,14 +112,17 @@ async def run_graph(
         components.append(input_value_request.components or [])
         inputs_list.append({INPUT_FIELD_NAME: input_value_request.input_value})
         types.append(input_value_request.type)
-    return await graph.arun(
-        inputs_list,
+    orchestrator_backend = get_settings_service().settings.orchestrator_backend
+    return await run_graph_with_orchestrator(
+        graph=graph,
+        inputs=inputs_list,
         inputs_components=components,
         types=types,
         outputs=outputs or [],
         stream=False,
         session_id=session_id,
         fallback_to_env_vars=fallback_to_env_vars,
+        backend=orchestrator_backend,
     )
 
 
