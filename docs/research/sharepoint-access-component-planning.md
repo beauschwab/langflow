@@ -1,6 +1,6 @@
 # SharePoint Files Access Component: Research and Implementation Plan
 
-## Executive summary
+## Executive Summary
 This document proposes a new Langflow component for accessing files stored in Microsoft SharePoint and OneDrive for Business through Microsoft Graph. The goal is to provide enterprise teams with a first-class document ingestion path that matches existing loader-style components (for example, Google Drive and Confluence) while preserving current Langflow component patterns and flow semantics.
 
 Recommended initial scope is a **read-only SharePoint Files Loader** that supports listing and loading document content/metadata from a configured site and document library path.
@@ -94,6 +94,6 @@ Recommended initial scope is a **read-only SharePoint Files Loader** that suppor
   - run a flow with the component and verify deterministic `Data` output shape.
 
 ## Open questions before implementation
-- Whether to support delegated auth in addition to app-only auth for tenant policies that block app-only access.
+- Whether to support delegated authentication in addition to app-only authentication for tenant policies that block app-only access.
 - Which file parsers should be bundled for non-text binary formats in MVP vs follow-up.
 - Whether SharePoint permissions should be validated pre-run (fast-fail) or lazily during traversal.
