@@ -459,13 +459,31 @@ This inventory documents the node/component types currently available to the fro
 - **Output ports**:
   - `text` (Output) — display: "Response"; method: `execute_action`
 
-## confluence (1 node types)
+## confluence (2 node types)
 
 ### Confluence
 
 - **Class**: `ConfluenceComponent`
 - **Source**: `confluence/confluence.py`
 - **Description**: Confluence wiki collaboration platform
+
+- **Input/configuration ports**:
+  - `url` (StrInput) — display: "Site URL"; required: true; info: The base URL of the Confluence Space. Example: https://<company>.atlassian.net/wiki.
+  - `username` (StrInput) — display: "Username"; required: true; info: Atlassian User E-mail. Example: email@example.com
+  - `api_key` (SecretStrInput) — display: "API Key"; required: true; info: Atlassian Key. Create at: https://id.atlassian.com/manage-profile/security/api-tokens
+  - `space_key` (StrInput) — display: "Space Key"; required: true
+  - `cloud` (BoolInput) — display: "Use Cloud?"; required: true; default: True
+  - `content_format` (DropdownInput) — display: "Content Format"; required: true; options: [ContentFormat.EDITOR.value, ContentFormat.EXPORT_VIEW.value, ContentFormat.ANONYMOUS_EXPORT_VIEW.value, ContentFormat.STORAGE.value, ContentFormat.VIEW.value]; default: ContentFormat.STORAGE.value; info: Specify content format, defaults to ContentFormat.STORAGE
+  - `max_pages` (IntInput) — display: "Max Pages"; required: false; default: 1000; info: Maximum number of pages to retrieve in total, defaults 1000
+
+- **Output ports**:
+  - `data` (Output) — display: "Data"; method: `load_documents`
+
+### Confluence Knowledge Base
+
+- **Class**: `ConfluenceKnowledgeBaseComponent`
+- **Source**: `confluence/confluence_knowledge_base.py`
+- **Description**: Confluence-based knowledge base loader supporting cloud and on-prem deployments.
 
 - **Input/configuration ports**:
   - `url` (StrInput) — display: "Site URL"; required: true; info: The base URL of the Confluence Space. Example: https://<company>.atlassian.net/wiki.
@@ -2994,7 +3012,7 @@ This inventory documents the node/component types currently available to the fro
 - **Output ports**:
   - `data` (Output) — display: "Data"; method: `scrape`
 
-## tools (31 node types)
+## tools (32 node types)
 
 ### arXiv
 
@@ -3098,6 +3116,23 @@ This inventory documents the node/component types currently available to the fro
 
 - **Output ports**:
   - _No class-level outputs declared._
+
+### DataHub GraphQL MCP Server
+
+- **Class**: `DataHubGraphQLMCPComponent`
+- **Source**: `tools/datahub_graphql_mcp.py`
+- **Description**: Connect to a DataHub MCP server to access data from a GraphQL endpoint.
+
+- **Input/configuration ports**:
+  - `mode` (TabInput) — display: "Mode"; options: ['Stdio', 'SSE']; default: 'SSE'; info: Select the connection mode
+  - `graphql_endpoint` (MessageTextInput) — display: "GraphQL Endpoint"; required: true; default: 'http://localhost:8080/api/graphql'; info: DataHub GraphQL endpoint used by the MCP server.
+  - `command` (MessageTextInput) — display: "MCP Command"; default: 'npx -y @datahub-project/datahub-mcp-server --graphql-endpoint http://localhost:8080/api/graphql'; info: Command for MCP stdio connection
+  - `sse_url` (MessageTextInput) — display: "MCP SSE URL"; default: 'http://localhost:8080/mcp'; info: URL for MCP SSE connection
+  - `tool` (DropdownInput) — display: "Tool"; required: true; options: []; default: ''; info: Select the tool to execute
+  - `tool_placeholder` (MessageTextInput) — display: "Tool Placeholder"; default: ''; info: Placeholder for the tool
+
+- **Output ports**:
+  - `response` (Output) — display: "Response"; method: `build_output`
 
 ### DuckDuckGo Search
 
@@ -4123,4 +4158,3 @@ This inventory documents the node/component types currently available to the fro
 
 - **Output ports**:
   - `video_data` (Output) — display: "Video Data"; method: `get_video_details`
-
