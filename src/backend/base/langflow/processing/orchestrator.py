@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, TypedDict, cast
+from typing import TYPE_CHECKING, TypedDict, cast
 
 from loguru import logger
 
@@ -142,5 +142,8 @@ async def _run_with_langgraph(
     workflow.add_edge("execute_graph", END)
 
     app = workflow.compile()
-    result = cast("dict[str, Any]", await app.ainvoke({"run_configs": run_configs}))
+    result = await app.ainvoke({"run_configs": run_configs})
+    if not isinstance(result, dict):
+        msg = "Invalid LangGraph result format"
+        raise TypeError(msg)
     return cast("list[RunOutputs]", result.get("run_outputs", []))
