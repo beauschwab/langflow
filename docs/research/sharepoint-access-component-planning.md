@@ -5,6 +5,11 @@ This document proposes a new Langflow component for accessing files stored in Mi
 
 Recommended initial scope is a **read-only SharePoint Files Loader** that supports listing and loading document content/metadata from a configured site and document library path.
 
+## Implementation status
+- Implemented component: `/home/runner/work/langflow/langflow/src/backend/base/langflow/components/sharepoint/sharepoint_files.py`
+- Component export: `/home/runner/work/langflow/langflow/src/backend/base/langflow/components/sharepoint/__init__.py`
+- Unit tests: `/home/runner/work/langflow/langflow/src/backend/tests/unit/components/data/test_sharepoint_files_loader.py`
+
 ## Repository locations reviewed
 - `/home/runner/work/langflow/langflow/src/backend/base/langflow/components/google/google_drive.py`
 - `/home/runner/work/langflow/langflow/src/backend/base/langflow/components/confluence/confluence.py`
