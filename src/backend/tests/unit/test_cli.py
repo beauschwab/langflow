@@ -1,4 +1,5 @@
 import pytest
+from langflow import __main__
 from langflow.__main__ import app
 from langflow.services import deps
 
@@ -29,3 +30,16 @@ def test_superuser(runner):
     result = runner.invoke(app, ["superuser"], input="admin\nadmin\n")
     assert result.exit_code == 0, result.stdout
     assert "Superuser created successfully." in result.stdout
+
+
+def test_show_version_uses_package_name(monkeypatch):
+    monkeypatch.setattr(__main__, "get_version_info", lambda: {"package": "Novaflow", "version": "9.9.9"})
+    captured = {}
+
+    def fake_echo(message):
+        captured["message"] = message
+
+    monkeypatch.setattr(__main__.typer, "echo", fake_echo)
+    with pytest.raises(__main__.typer.Exit):
+        __main__.show_version(value=True)
+    assert captured["message"] == "novaflow 9.9.9"

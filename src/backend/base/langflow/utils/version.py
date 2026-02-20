@@ -24,6 +24,8 @@ def _get_version_info():
         ValueError: If the package is not found from the list of package names.
     """
     package_options = [
+        ("novaflow", "Novaflow"),
+        ("novaflow-nightly", "Novaflow Nightly"),
         ("langflow", "Langflow"),
         ("langflow-base", "Langflow Base"),
         ("langflow-nightly", "Langflow Nightly"),
