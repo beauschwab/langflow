@@ -7,7 +7,7 @@ from contextvars import ContextVar
 from functools import wraps
 from typing import Annotated, Any, ParamSpec, TypeVar
 from urllib.parse import quote, unquote, urlparse
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pydantic
 from anyio import BrokenResourceError
@@ -98,6 +98,11 @@ async def handle_list_prompts():
 async def handle_list_resources():
     resources = []
     try:
+        try:
+            current_user = current_user_ctx.get()
+        except LookupError:
+            return resources
+
         db_service = get_db_service()
         storage_service = get_storage_service()
         settings_service = get_settings_service()
@@ -109,7 +114,7 @@ async def handle_list_resources():
         base_url = f"http://{host}:{port}".rstrip("/")
 
         async with db_service.with_session() as session:
-            flows = (await session.exec(select(Flow))).all()
+            flows = (await session.exec(select(Flow).where(Flow.user_id == current_user.id))).all()
 
             for flow in flows:
                 if flow.id:
@@ -154,7 +159,25 @@ async def handle_read_resource(uri: str) -> bytes:
             raise ValueError(msg)
 
         flow_id = path_parts[-2]
+        try:
+            flow_uuid = UUID(flow_id)
+        except ValueError as e:
+            msg = "Invalid flow ID format"
+            raise ValueError(msg) from e
         filename = unquote(path_parts[-1])  # URL decode the filename
+
+        try:
+            current_user = current_user_ctx.get()
+        except LookupError:
+            msg = "No authenticated user context available."
+            raise ValueError(msg) from None
+        db_service = get_db_service()
+        async with db_service.with_session() as session:
+            flow = await session.get(Flow, flow_uuid)
+            if not flow or flow.user_id is None or flow.user_id != current_user.id:
+                # Intentionally return a not-found style error for both missing and unauthorized flows.
+                msg = "Flow not found"
+                raise ValueError(msg)
 
         storage_service = get_storage_service()
 
@@ -178,14 +201,16 @@ async def handle_read_resource(uri: str) -> bytes:
 async def handle_list_tools():
     tools = []
     try:
+        try:
+            current_user = current_user_ctx.get()
+        except LookupError:
+            return tools
+
         db_service = get_db_service()
         async with db_service.with_session() as session:
-            flows = (await session.exec(select(Flow))).all()
+            flows = (await session.exec(select(Flow).where(Flow.user_id == current_user.id))).all()
 
             for flow in flows:
-                if flow.user_id is None:
-                    continue
-
                 tool = types.Tool(
                     name=flow.name,
                     description=f"{flow.id}: {flow.description}"
