@@ -117,3 +117,119 @@ For an internal enterprise use case, the most pragmatic strategy is:
 3. Migrate flow categories gradually with hard parity gates.
 
 This provides enterprise control and rollback safety without sacrificing the existing workflow builder and component ecosystem.
+
+## 2026-02 parity and conformance audit (legacy vs langgraph backends)
+
+### Scope of backend comparison
+- Orchestrator switch and adapter behavior:
+  - `/home/runner/work/langflow/langflow/src/backend/base/langflow/services/settings/base.py`
+  - `/home/runner/work/langflow/langflow/src/backend/base/langflow/processing/orchestrator.py`
+  - `/home/runner/work/langflow/langflow/src/backend/base/langflow/processing/process.py`
+- Core execution semantics:
+  - `/home/runner/work/langflow/langflow/src/backend/base/langflow/graph/graph/base.py`
+- Event contract and stream payload shape:
+  - `/home/runner/work/langflow/langflow/src/backend/base/langflow/events/event_manager.py`
+  - `/home/runner/work/langflow/langflow/src/backend/base/langflow/schema/playground_events.py`
+- FastAPI route entrypoints:
+  - `/home/runner/work/langflow/langflow/src/backend/base/langflow/api/v1/endpoints.py`
+  - `/home/runner/work/langflow/langflow/src/backend/base/langflow/api/v1/chat.py`
+  - `/home/runner/work/langflow/langflow/src/backend/base/langflow/api/build.py`
+
+### Legacy vs LangGraph parity matrix
+
+| Capability / contract | Legacy backend path | LangGraph backend path | Parity status |
+|---|---|---|---|
+| Backend selection | `orchestrator_backend="legacy"` | `orchestrator_backend="langgraph"` | ✅ single settings flag controls both paths |
+| Public execution entrypoint | `run_graph_internal(...) -> run_graph_with_orchestrator(...)` | Same entrypoint and arguments | ✅ identical API boundary |
+| Input normalization for multiple runs | `Graph.arun(...)` normalizes inputs/components/types | `_normalize_run_configs(...)` mirrors `Graph.arun(...)` behavior | ✅ equivalent normalization intent |
+| Session propagation | `graph.session_id` set before `Graph.arun(...)` | `graph.session_id` set before StateGraph invocation | ✅ equivalent |
+| Per-run execution primitive | `Graph._run(...)` called inside `Graph.arun(...)` loop | `Graph._run(...)` called inside LangGraph node loop | ✅ same underlying execution method |
+| Output payload type | `list[RunOutputs]` | `list[RunOutputs]` | ✅ identical response model |
+| Env var fallback behavior | `fallback_to_env_vars` passed into `Graph._run(...)` | Same | ✅ identical |
+| Missing LangGraph dependency handling | N/A | Logs warning and falls back to legacy `Graph.arun(...)` | ✅ safe fallback |
+
+### Event contract conformance check
+
+The LangGraph adapter does **not** introduce new event formats; it passes the same `event_manager` object into `Graph._run(...)`, preserving existing event emission points.
+
+- Event manager registration remains unchanged (`create_default_event_manager` / `create_stream_tokens_event_manager`):
+  - `token`, `vertices_sorted`, `error`, `end`, `add_message`, `remove_message`, `end_vertex`, `build_start`, `build_end`
+- Event envelope remains unchanged:
+  - `{"event": <event_type>, "data": <jsonable_data>}` in `EventManager.send_event(...)`
+- Event payload models remain unchanged:
+  - `PlaygroundEvent`, `MessageEvent`, `ErrorEvent`, `TokenEvent` in `schema/playground_events.py`
+
+**Conclusion:** event shape and event-type contracts are preserved across legacy and langgraph backend selection.
+
+### FastAPI route conformance check
+
+No route divergence was found between backends because backend selection happens inside processing services rather than in route definitions.
+
+| Route surface | Route(s) | Orchestration handoff | Conformance result |
+|---|---|---|---|
+| Run API | `POST /run/{flow_id_or_name}` and non-streaming run handler paths | `run_graph_internal(...)` -> `run_graph_with_orchestrator(...)` | ✅ unchanged route and payload boundary |
+| Build flow API | `POST /build/{flow_id}/flow` | build pipeline in `api/build.py` / graph build path | ✅ unaffected by orchestrator backend switch |
+| Build events API | `GET /build/{job_id}/events` | queue + `EventManager` stream serialization | ✅ unchanged NDJSON/event contract |
+| Build cancellation API | `POST /build/{job_id}/cancel` | queue-service cancellation path | ✅ unchanged |
+| Deprecated compatibility routes | `/predict/{_flow_id}`, `/process/{_flow_id}`, `/task/{_task_id}` | unchanged warnings/deprecation behavior | ✅ unchanged |
+
+---
+
+## Comprehensive backend tool integration inventory
+
+### Tool framework foundations used by backend
+- **Langflow component abstraction**
+  - `LCToolComponent` and related Langflow component base classes for tool construction.
+- **LangChain tool runtime**
+  - `langchain_core.tools.StructuredTool`
+  - `langchain_core.tools.Tool` / `langchain.tools.StructuredTool` (legacy/deprecated variants)
+- **Provider wrappers**
+  - `langchain_community.utilities.*`, `langchain_community.tools.*`, `langchain_google_community`, `langchain_experimental.utilities`.
+- **MCP integration**
+  - MCP clients/utilities in `langflow.base.mcp.util` surfaced as LangChain `StructuredTool` objects.
+
+### `components/tools` integration inventory (primary tool catalog)
+
+| Integration component(s) | Description | Implementation framework(s) |
+|---|---|---|
+| ArXiv (`arxiv.py`) | Search/retrieve arXiv papers | Langflow tool component wrapper |
+| Astra DB (`astradb.py`, `astradb_cql.py`) | Astra DB / Astra CQL tool operations | LangChain `StructuredTool`/`Tool`, Pydantic models |
+| Bing Search (`bing_search_api.py`) | Bing web search | `langchain_community.tools.bing_search`, `BingSearchAPIWrapper` |
+| Calculator (`calculator.py`, `calculator_core.py`) | Arithmetic evaluation (deprecated + core) | `StructuredTool` + Langflow core component |
+| DuckDuckGo (`duck_duck_go_search_run.py`) | DuckDuckGo search tool | `langchain_community.tools.DuckDuckGoSearchRun` |
+| Exa (`exa_search.py`) | Exa search/content retrieval toolkit | LangChain core tool decorator |
+| Glean (`glean_search_api.py`) | Glean enterprise search | LangChain `StructuredTool` |
+| Google Search (`google_search_api.py`, `google_search_api_core.py`) | Google search APIs | LangChain Tool/Google wrappers (`langchain_google_community`) |
+| Google Serper (`google_serper_api.py`, `google_serper_api_core.py`) | Serper.dev search API | LangChain StructuredTool + `GoogleSerperAPIWrapper` |
+| MCP Server tools (`mcp_component.py`) | MCP server connection and dynamic tool exposure | MCP clients + LangChain `StructuredTool` |
+| Python execution (`python_repl.py`, `python_repl_core.py`, `python_code_structured_tool.py`) | Python REPL and code-to-tool execution | `langchain_experimental.PythonREPL`, LangChain tools |
+| SearchAPI (`search.py`, `search_api.py`) | SearchApi-based web search | `SearchApiAPIWrapper` + LangChain tooling |
+| SearXNG (`searxng.py`) | SearXNG metasearch integration | LangChain Tool/StructuredTool |
+| SerpAPI (`serp.py`, `serp_api.py`) | SerpAPI search | `SerpAPIWrapper` + LangChain tools |
+| Tavily (`tavily.py`, `tavily_search.py`) | Tavily search for LLM/RAG workflows | Tavily SDK + LangChain StructuredTool |
+| Wikidata (`wikidata.py`, `wikidata_api.py`) | Wikidata query/search | LangChain StructuredTool/ToolException patterns |
+| Wikipedia (`wikipedia.py`, `wikipedia_api.py`) | Wikipedia query/search | `WikipediaAPIWrapper`, `WikipediaQueryRun` |
+| WolframAlpha (`wolfram_alpha_api.py`) | Computational queries/facts/calculations | `WolframAlphaAPIWrapper` + LangChain Tool |
+| Yahoo Finance (`yahoo.py`, `yahoo_finance.py`) | Financial market data via yfinance | Langflow component + LangChain StructuredTool |
+
+### Additional backend tool-capable integrations outside `components/tools`
+
+These components expose tool inputs/outputs (`tool_mode=True`) and are part of backend tool integration surface:
+
+- `components/agentql/agentql_api.py`
+- `components/astra_assistants/astra_assistant_manager.py`
+- `components/composio/gmail_api.py`
+- `components/custom_component/custom_component.py`
+- `components/data/{api_request.py,directory.py,url.py}`
+- `components/firecrawl/{firecrawl_crawl_api.py,firecrawl_extract_api.py,firecrawl_map_api.py,firecrawl_scrape_api.py}`
+- `components/helpers/{current_date.py,id_generator.py,memory.py,store_message.py,structured_output.py}`
+- `components/needle/needle.py`
+- `components/olivya/olivya.py`
+- `components/processing/regex.py`
+- `components/prompts/prompt.py`
+- `components/scrapegraph/{scrapegraph_markdownify_api.py,scrapegraph_search_api.py,scrapegraph_smart_scraper_api.py}`
+- `components/vectorstores/{graph_rag.py,vectara_rag.py}`
+- `components/youtube/{channel.py,comments.py,search.py,video_details.py,youtube_transcripts.py}`
+- legacy/deactivated MCP adapters: `components/deactivated/{mcp_sse.py,mcp_stdio.py}`
+
+This list, together with `components/tools`, represents the backend’s current tool-integration footprint for orchestration and agent execution.
