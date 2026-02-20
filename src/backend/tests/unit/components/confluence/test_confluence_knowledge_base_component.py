@@ -9,3 +9,11 @@ def test_confluence_knowledge_base_component_defaults():
     assert node_data["display_name"] == "Confluence Knowledge Base"
     assert node_data["name"] == "ConfluenceKnowledgeBase"
     assert "space_key" in node_data["template"]
+    assert "cloud" in node_data["template"]
+    assert node_data["template"]["cloud"]["value"] is True
+
+
+def test_confluence_knowledge_base_component_accepts_on_prem_mode():
+    component = ConfluenceKnowledgeBaseComponent(cloud=False)
+
+    assert component.cloud is False
