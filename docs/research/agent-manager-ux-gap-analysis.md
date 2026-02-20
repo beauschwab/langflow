@@ -4,6 +4,13 @@
 
 This document evaluates the [Open Agent Platform frontend UX spec](https://github.com/beauschwab/open-agent-platform/blob/copilot/deep-dive-analysis-frontend/apps/docs/setup/frontend-ux-spec.mdx) against the current Langflow codebase to identify features that should be incorporated for building and managing custom agents, tools, and MCP nodes within NovaFlow workflows. It focuses on gaps that, once addressed, would create an intuitive, organized, enterprise-ready experience supporting a multi-tenant approach.
 
+### Implementation status
+
+Phase 1 foundational work has been implemented:
+- **Backend:** `Agent` SQLModel entity (`models/agent/`), CRUD API at `/api/v1/agents/` with auth, search, and type filtering
+- **Frontend:** `/agents` page with card grid, search, create dialog; Zustand store (`agentStore.ts`); React Query hooks
+- **Tests:** Backend pytest suite at `tests/unit/api/v1/test_agents.py` covering full CRUD lifecycle
+
 ### Reference artifacts reviewed
 
 | Source | Path / URL | Location |

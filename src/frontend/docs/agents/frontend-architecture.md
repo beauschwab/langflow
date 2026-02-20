@@ -35,6 +35,7 @@ From `routes.tsx`:
   - Dashboard collection pages:
     - `/flows`, `/components`, `/all`, plus folder variants
     - optional `/files` page (feature flag)
+  - Agents: `/agents` — Agent management page with card grid, search, and CRUD dialogs
   - Settings:
     - `/settings/general`, `/settings/global-variables`, `/settings/api-keys`, `/settings/shortcuts`, `/settings/messages`, `/settings/store`
   - Store pages: `/store`, `/store/:id/`

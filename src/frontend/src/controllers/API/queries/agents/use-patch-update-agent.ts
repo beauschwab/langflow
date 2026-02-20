@@ -1,4 +1,4 @@
-import { AgentUpdateType, AgentType } from "@/types/agents";
+import { AgentType, AgentUpdateType } from "@/types/agents";
 import { useMutationFunctionType } from "@/types/api";
 import { api } from "../../api";
 import { getURL } from "../../helpers/constants";

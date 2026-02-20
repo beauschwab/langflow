@@ -9,3 +9,7 @@ This index links to dedicated deep-dive documentation files for the Langflow fro
 3. [Backend API Inventory Called by Frontend](docs/agents/backend-api-inventory.md)
 4. [Comprehensive Frontend Component Inventory](docs/agents/component-inventory.md)
 5. [User Experience Flows and End-to-End User Actions](docs/agents/user-experience-flows.md)
+
+## Research Documents
+
+6. [Agent Manager UX Gap Analysis](../../docs/research/agent-manager-ux-gap-analysis.md) — Evaluates Open Agent Platform UX features for incorporation into Langflow/NovaFlow

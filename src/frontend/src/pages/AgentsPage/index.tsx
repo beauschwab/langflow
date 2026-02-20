@@ -1,6 +1,5 @@
 import { Input } from "@/components/ui/input";
-import { useGetAgents } from "@/controllers/API/queries/agents";
-import { useDeleteAgent } from "@/controllers/API/queries/agents";
+import { useDeleteAgent, useGetAgents } from "@/controllers/API/queries/agents";
 import useAlertStore from "@/stores/alertStore";
 import { AgentType } from "@/types/agents";
 import { useState } from "react";

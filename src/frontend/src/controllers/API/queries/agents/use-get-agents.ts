@@ -24,12 +24,8 @@ export const useGetAgents: useQueryFunctionType<IGetAgents, AgentType[]> = (
     return data;
   };
 
-  return query(
-    ["useGetAgents", params],
-    () => getAgentsFn(params ?? {}),
-    {
-      refetchOnWindowFocus: false,
-      ...options,
-    },
-  );
+  return query(["useGetAgents", params], () => getAgentsFn(params ?? {}), {
+    refetchOnWindowFocus: false,
+    ...options,
+  });
 };

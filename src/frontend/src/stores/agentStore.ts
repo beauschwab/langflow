@@ -22,8 +22,7 @@ const useAgentStore = create<AgentStoreType>((set, get) => ({
   setSelectedAgent: (agent) => set({ selectedAgent: agent }),
   setSearchQuery: (query) => set({ searchQuery: query }),
 
-  addAgent: (agent) =>
-    set({ agents: [...get().agents, agent] }),
+  addAgent: (agent) => set({ agents: [...get().agents, agent] }),
 
   updateAgent: (agent) =>
     set({

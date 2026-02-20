@@ -21,7 +21,10 @@ export default function AgentCard({
   onDelete,
 }: AgentCardProps): JSX.Element {
   return (
-    <Card className="group cursor-pointer hover:shadow-md" data-testid={`agent-card-${agent.id}`}>
+    <Card
+      className="group cursor-pointer hover:shadow-md"
+      data-testid={`agent-card-${agent.id}`}
+    >
       <CardHeader>
         <div className="flex items-start justify-between">
           <CardTitle className="truncate">{agent.name}</CardTitle>
