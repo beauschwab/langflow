@@ -168,6 +168,12 @@ class Settings(BaseSettings):
     """Execution orchestrator backend. Use 'legacy' for the current graph runtime and
     'langgraph' to route graph runs through the LangGraph adapter."""
 
+    a2a_enabled: bool = True
+    """Enable Agent-to-Agent (A2A) protocol endpoints."""
+
+    tenant_isolation_enabled: bool = False
+    """Feature flag for Phase 2 tenant isolation rollout."""
+
     store_environment_variables: bool = True
     """Whether to store environment variables as Global Variables in the database."""
     variables_to_get_from_environment: list[str] = VARIABLES_TO_GET_FROM_ENVIRONMENT

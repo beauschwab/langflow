@@ -394,3 +394,38 @@ class CancelFlowResponse(BaseModel):
 
     success: bool
     message: str
+
+
+class A2ATaskCreateRequest(BaseModel):
+    flow_id: UUID
+    inputs: InputValueRequest | None = None
+    data: FlowDataRequest | None = None
+    files: list[str] | None = None
+    stop_component_id: str | None = None
+    start_component_id: str | None = None
+    flow_name: str | None = None
+    log_builds: bool = True
+
+
+class A2ATaskResponse(BaseModel):
+    id: str
+    status: str
+    status_url: str
+    events_url: str
+    cancel_url: str
+
+
+class A2ATaskStatusResponse(BaseModel):
+    id: str
+    status: Literal["submitted", "running", "completed", "cancelled", "failed"]
+    done: bool
+    error: str | None = None
+
+
+class A2AAgentCardResponse(BaseModel):
+    protocol: str = "a2a"
+    protocol_version: str = "0.2"
+    agent_name: str = "langflow"
+    capabilities: list[str]
+    auth_schemes: list[str]
+    orchestrator_backend: str

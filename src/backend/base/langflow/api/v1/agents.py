@@ -31,8 +31,14 @@ async def create_agent(
         await session.refresh(db_agent)
         return db_agent
     except Exception as e:
+        if "UNIQUE constraint failed" in str(e):
+            raise HTTPException(status_code=400, detail="Agent name must be unique") from e
+        if hasattr(e, "errors"):
+            raise HTTPException(status_code=400, detail="Invalid agent data") from e
+        if isinstance(e, HTTPException):
+            raise
         logger.exception("Error creating agent")
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        raise HTTPException(status_code=500, detail="An internal error occurred while creating the agent") from e
 
 
 @router.get("/", response_model=list[AgentRead])
@@ -54,8 +60,10 @@ async def read_agents(
         agents = (await session.exec(stmt)).all()
         return agents
     except Exception as e:
+        if isinstance(e, HTTPException):
+            raise
         logger.exception("Error reading agents")
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        raise HTTPException(status_code=500, detail="An internal error occurred while listing agents") from e
 
 
 @router.get("/{agent_id}", response_model=AgentRead)

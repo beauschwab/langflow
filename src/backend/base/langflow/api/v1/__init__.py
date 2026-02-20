@@ -1,3 +1,4 @@
+from langflow.api.v1.a2a import router as a2a_router
 from langflow.api.v1.agents import router as agents_router
 from langflow.api.v1.api_key import router as api_key_router
 from langflow.api.v1.chat import router as chat_router
@@ -16,6 +17,7 @@ from langflow.api.v1.variable import router as variables_router
 from langflow.api.v1.voice_mode import router as voice_mode_router
 
 __all__ = [
+    "a2a_router",
     "agents_router",
     "api_key_router",
     "chat_router",
