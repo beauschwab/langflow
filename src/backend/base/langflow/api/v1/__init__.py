@@ -20,6 +20,7 @@ __all__ = [
     "a2a_router",
     "agents_router",
     "api_key_router",
+    "a2a_router",
     "chat_router",
     "endpoints_router",
     "files_router",
