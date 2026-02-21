@@ -243,7 +243,6 @@ deploy = [
 ]
 local = [
     "llama-cpp-python>=0.2.0",
-    "sentence-transformers>=2.0.0",
     "ctransformers>=0.2"
 ]
 all = [
@@ -251,7 +250,6 @@ all = [
     "redis>=4.6.0",
     "flower>=1.0.0",
     "llama-cpp-python>=0.2.0",
-    "sentence-transformers>=2.0.0",
     "ctransformers>=0.2"
 ]
 
