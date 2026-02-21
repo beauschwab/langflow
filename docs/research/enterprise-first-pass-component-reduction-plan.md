@@ -32,7 +32,7 @@ Treat all current sidebar bundle providers as out-of-scope unless explicitly app
 - `astra_assistants`
 - `olivya`
 - `langwatch`
-- `Notion`
+- `notion`
 - `needle`
 - `nvidia`
 - `vectara`
