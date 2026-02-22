@@ -20,7 +20,7 @@ Define a low-risk first pass for enterprise deployments that keeps Langflow orch
 2. **Core component categories (non-vendor-specific)**
    - `inputs`, `outputs`, `prompts`, `processing`, `logic`, `helpers`, `data`, `documentloaders`, `textsplitters`, `output_parsers`.
 3. **Enterprise data access (generalized)**
-   - Keep neutral/internal data components and enterprise connectors needed for initial rollout (for example `sharepoint` where applicable).
+   - Keep neutral/internal data components and enterprise connectors needed for initial rollout (for example `sharepoint`, `confluence`, and `datahub` where applicable).
 
 ### Exclude at first pass
 Treat all current sidebar bundle providers as out-of-scope unless explicitly approved for the enterprise environment:
@@ -45,7 +45,6 @@ Treat all current sidebar bundle providers as out-of-scope unless explicitly app
 - `firecrawl`
 - `unstructured`
 - `git`
-- `confluence`
 - `mem0`
 - `youtube`
 - `scrapegraph`
