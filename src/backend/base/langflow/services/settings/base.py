@@ -254,6 +254,11 @@ class Settings(BaseSettings):
     lazy_load_components: bool = False
     """If set to True, Langflow will only partially load components at startup and fully load them on demand.
     This significantly reduces startup time but may cause a slight delay when a component is first used."""
+    enterprise_first_pass_components_only: bool = False
+    """If set to True, Langflow excludes component types listed in
+    interface.components.ENTERPRISE_FIRST_PASS_EXCLUDED_COMPONENT_TYPES during loading."""
+    enterprise_first_pass_excluded_component_types: list[str] = []
+    """Optional override list of component types to exclude when enterprise_first_pass_components_only is enabled."""
 
     @field_validator("dev")
     @classmethod
