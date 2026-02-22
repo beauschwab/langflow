@@ -11,7 +11,6 @@ from langflow.base.models.model_input_constants import (
 from langflow.base.models.model_utils import get_model_name
 from langflow.components.helpers import CurrentDateComponent
 from langflow.components.helpers.memory import MemoryComponent
-from langflow.components.langchain_utilities.tool_calling import ToolCallingAgentComponent
 from langflow.custom.custom_component.component import _get_component_toolkit
 from langflow.custom.utils import update_component_build_config
 from langflow.field_typing import Tool
@@ -26,7 +25,7 @@ def set_advanced_true(component_input):
     return component_input
 
 
-class AgentComponent(ToolCallingAgentComponent):
+class AgentComponent(LCToolsAgentComponent):
     display_name: str = "Agent"
     description: str = "Define the agent's instructions, then enter a task to complete using tools."
     icon = "bot"

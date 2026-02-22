@@ -563,37 +563,8 @@ export const SIDEBAR_CATEGORIES = [
 ];
 
 export const SIDEBAR_BUNDLES = [
-  { display_name: "Gmail", name: "gmail", icon: "Gmail" },
-  // Add apify
-  { display_name: "Apify", name: "apify", icon: "Apify" },
-  { display_name: "LangChain", name: "langchain_utilities", icon: "LangChain" },
-  { display_name: "AgentQL", name: "agentql", icon: "AgentQL" },
-  { display_name: "AssemblyAI", name: "assemblyai", icon: "AssemblyAI" },
-  {
-    display_name: "DataStax",
-    name: "astra_assistants",
-    icon: "AstraDB",
-  },
-  { display_name: "Olivya", name: "olivya", icon: "Olivya" },
-  { display_name: "LangWatch", name: "langwatch", icon: "Langwatch" },
-  { display_name: "Notion", name: "Notion", icon: "Notion" },
-  { display_name: "Needle", name: "needle", icon: "Needle" },
-  { display_name: "NVIDIA", name: "nvidia", icon: "NVIDIA" },
-  { display_name: "Vectara", name: "vectara", icon: "Vectara" },
-  { display_name: "Icosa Computing", name: "icosacomputing", icon: "Icosa" },
-  { display_name: "Google", name: "google", icon: "Google" },
-  { display_name: "CrewAI", name: "crewai", icon: "CrewAI" },
-  { display_name: "NotDiamond", name: "notdiamond", icon: "NotDiamond" },
-  { display_name: "Composio", name: "composio", icon: "Composio" },
-  { display_name: "Cohere", name: "cohere", icon: "Cohere" },
-  { display_name: "Firecrawl", name: "firecrawl", icon: "FirecrawlCrawlApi" },
-  { display_name: "Unstructured", name: "unstructured", icon: "Unstructured" },
-  { display_name: "Git", name: "git", icon: "GitLoader" },
   { display_name: "Confluence", name: "confluence", icon: "Confluence" },
   { display_name: "SharePoint", name: "sharepoint", icon: "SharePoint" },
-  { display_name: "Mem0", name: "mem0", icon: "Mem0" },
-  { display_name: "Youtube", name: "youtube", icon: "YouTube" },
-  { display_name: "ScrapeGraph AI", name: "scrapegraph", icon: "ScrapeGraph" },
 ];
 
 export const categoryIcons = {

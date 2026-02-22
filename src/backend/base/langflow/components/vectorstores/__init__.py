@@ -18,9 +18,6 @@ from .qdrant import QdrantVectorStoreComponent
 from .redis import RedisVectorStoreComponent
 from .supabase import SupabaseVectorStoreComponent
 from .upstash import UpstashVectorStoreComponent
-from .vectara import VectaraVectorStoreComponent
-from .vectara_rag import VectaraRagComponent
-from .vectara_self_query import VectaraSelfQueryRetriverComponent
 from .weaviate import WeaviateVectorStoreComponent
 
 __all__ = [
@@ -44,8 +41,5 @@ __all__ = [
     "RedisVectorStoreComponent",
     "SupabaseVectorStoreComponent",
     "UpstashVectorStoreComponent",
-    "VectaraRagComponent",
-    "VectaraSelfQueryRetriverComponent",
-    "VectaraVectorStoreComponent",
     "WeaviateVectorStoreComponent",
 ]
