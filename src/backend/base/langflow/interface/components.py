@@ -11,6 +11,33 @@ from langflow.custom.utils import abuild_custom_components
 if TYPE_CHECKING:
     from langflow.services.settings.service import SettingsService
 
+# Third-party bundle component directories excluded when enterprise first-pass mode is enabled.
+# Keep this list aligned with the enterprise rollout plan and update intentionally as providers are approved.
+ENTERPRISE_FIRST_PASS_EXCLUDED_COMPONENT_TYPES = {
+    "agentql",
+    "apify",
+    "assemblyai",
+    "astra_assistants",
+    "cohere",
+    "composio",
+    "crewai",
+    "firecrawl",
+    "gmail",
+    "google",
+    "icosacomputing",
+    "langchain_utilities",
+    "langwatch",
+    "mem0",
+    "needle",
+    "notdiamond",
+    "nvidia",
+    "olivya",
+    "scrapegraph",
+    "unstructured",
+    "vectara",
+    "youtube",
+}
+
 
 # Create a class to manage component cache instead of using globals
 class ComponentCache:
@@ -21,6 +48,33 @@ class ComponentCache:
 
 # Singleton instance
 component_cache = ComponentCache()
+
+
+def apply_enterprise_first_pass_component_filter(
+    all_types_dict: dict[str, Any], excluded_component_types: set[str] | None = None
+) -> dict[str, Any]:
+    """Return a new types dictionary with enterprise-excluded component types removed.
+
+    Args:
+        all_types_dict: Component type dictionary expected to include a "components" mapping.
+        excluded_component_types: Optional component type names to remove. When not provided,
+            ENTERPRISE_FIRST_PASS_EXCLUDED_COMPONENT_TYPES is used.
+
+    Returns:
+        A new dictionary with excluded component types removed from "components".
+        If "components" is missing or is not a dictionary, the original dictionary is returned.
+    """
+    components = all_types_dict.get("components")
+    if not isinstance(components, dict):
+        return all_types_dict
+
+    excluded_types = excluded_component_types or ENTERPRISE_FIRST_PASS_EXCLUDED_COMPONENT_TYPES
+    filtered_components = {
+        component_type: component_values
+        for component_type, component_values in components.items()
+        if component_type not in excluded_types
+    }
+    return {**all_types_dict, "components": filtered_components}
 
 
 async def get_and_cache_all_types_dict(
@@ -37,6 +91,15 @@ async def get_and_cache_all_types_dict(
         else:
             # Traditional full loading
             component_cache.all_types_dict = await aget_all_types_dict(settings_service.settings.components_path)
+
+        if settings_service.settings.enterprise_first_pass_components_only:
+            logger.debug("Applying enterprise first-pass component filter")
+            excluded_types = set(settings_service.settings.enterprise_first_pass_excluded_component_types)
+            # Intentionally fall back to the default enterprise exclusion set when no override is provided.
+            component_cache.all_types_dict = apply_enterprise_first_pass_component_filter(
+                component_cache.all_types_dict,
+                excluded_component_types=excluded_types or None,
+            )
 
         # Log loading stats
         component_count = sum(len(comps) for comps in component_cache.all_types_dict.get("components", {}).values())

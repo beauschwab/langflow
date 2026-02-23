@@ -10,10 +10,6 @@ from .datahub_graphql_mcp import DataHubGraphQLMCPComponent
 from .duck_duck_go_search_run import DuckDuckGoSearchComponent
 from .exa_search import ExaSearchToolkit
 from .glean_search_api import GleanSearchAPIComponent
-from .google_search_api import GoogleSearchAPIComponent
-from .google_search_api_core import GoogleSearchAPICore
-from .google_serper_api import GoogleSerperAPIComponent
-from .google_serper_api_core import GoogleSerperAPICore
 from .mcp_component import MCPToolsComponent
 from .python_code_structured_tool import PythonCodeStructuredTool
 from .python_repl import PythonREPLToolComponent
@@ -49,10 +45,6 @@ __all__ = [
     "DuckDuckGoSearchComponent",
     "ExaSearchToolkit",
     "GleanSearchAPIComponent",
-    "GoogleSearchAPIComponent",
-    "GoogleSearchAPICore",
-    "GoogleSerperAPIComponent",
-    "GoogleSerperAPICore",
     "MCPToolsComponent",
     "PythonCodeStructuredTool",
     "PythonREPLComponent",
