@@ -3,57 +3,17 @@ from types import ModuleType
 
 import pytest
 
-from langflow.graph.schema import RunOutputs
 from langflow.processing.orchestrator import run_graph_with_orchestrator
 
 
 class DummyGraph:
     def __init__(self):
-        self.arun_calls = 0
         self._run_calls = 0
         self.session_id = ""
-
-    async def arun(self, **kwargs):
-        self.arun_calls += 1
-        return [RunOutputs(inputs={"input_value": "legacy"}, outputs=[])]
 
     async def _run(self, **kwargs):
         self._run_calls += 1
         return []
-
-
-@pytest.mark.asyncio
-async def test_legacy_orchestrator_uses_graph_arun():
-    graph = DummyGraph()
-
-    result = await run_graph_with_orchestrator(
-        graph=graph,
-        inputs=[{"input_value": "hello"}],
-        backend="legacy",
-    )
-
-    assert len(result) == 1
-    assert result[0].inputs == {"input_value": "legacy"}
-    assert graph.arun_calls == 1
-    assert graph._run_calls == 0
-
-
-@pytest.mark.asyncio
-async def test_langgraph_falls_back_to_legacy_when_dependency_missing(monkeypatch):
-    graph = DummyGraph()
-    monkeypatch.setitem(sys.modules, "langgraph", None)
-    monkeypatch.setitem(sys.modules, "langgraph.graph", None)
-
-    result = await run_graph_with_orchestrator(
-        graph=graph,
-        inputs=[{"input_value": "hello"}],
-        backend="langgraph",
-    )
-
-    assert len(result) == 1
-    assert result[0].inputs == {"input_value": "legacy"}
-    assert graph.arun_calls == 1
-    assert graph._run_calls == 0
 
 
 class FakeCompiledGraph:
@@ -95,10 +55,8 @@ async def test_langgraph_backend_uses_graph_private_run(monkeypatch):
     result = await run_graph_with_orchestrator(
         graph=graph,
         inputs=[{"input_value": "hello"}],
-        backend="langgraph",
     )
 
     assert len(result) == 1
     assert result[0].inputs == {"input_value": "hello"}
-    assert graph.arun_calls == 0
     assert graph._run_calls == 1
