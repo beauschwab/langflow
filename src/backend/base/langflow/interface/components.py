@@ -161,20 +161,14 @@ async def discover_component_types(components_paths: list[str]) -> list[str]:
     # Add known types that might not be in directories
     standard_types = {
         "agents",
-        "chains",
         "embeddings",
         "llms",
         "memories",
         "prompts",
         "tools",
-        "retrievers",
-        "textsplitters",
-        "toolkits",
         "utilities",
         "vectorstores",
         "custom_components",
-        "documentloaders",
-        "outputparsers",
         "wrappers",
     }
 

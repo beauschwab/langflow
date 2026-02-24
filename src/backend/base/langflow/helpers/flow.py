@@ -123,8 +123,11 @@ async def run_flow(
 
     fallback_to_env_vars = get_settings_service().settings.fallback_to_env_var
 
-    return await graph.arun(
-        inputs_list,
+    from langflow.processing.orchestrator import run_graph_with_orchestrator  # avoid circular import
+
+    return await run_graph_with_orchestrator(
+        graph=graph,
+        inputs=inputs_list,
         outputs=outputs,
         inputs_components=inputs_components,
         types=types,

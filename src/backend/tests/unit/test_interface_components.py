@@ -5,18 +5,15 @@ def test_apply_enterprise_first_pass_component_filter_excludes_bundle_types() ->
     all_types_dict = {
         "components": {
             "google": {"google_drive": {}},
-            "confluence": {"confluence_loader": {}},
-            "tools": {"datahub_graphql_mcp": {}},
+            "tools": {"calculator": {}},
         }
     }
 
     filtered = apply_enterprise_first_pass_component_filter(all_types_dict)
 
     assert "google" not in filtered["components"]
-    assert "confluence" in filtered["components"]
-    assert "confluence_loader" in filtered["components"]["confluence"]
     assert "tools" in filtered["components"]
-    assert "datahub_graphql_mcp" in filtered["components"]["tools"]
+    assert "calculator" in filtered["components"]["tools"]
 
 
 def test_apply_enterprise_first_pass_component_filter_no_components_key() -> None:
@@ -36,9 +33,9 @@ def test_apply_enterprise_first_pass_component_filter_with_non_dict_components()
 
 
 def test_apply_enterprise_first_pass_component_filter_with_custom_exclusions() -> None:
-    all_types_dict = {"components": {"confluence": {"loader": {}}, "tools": {"datahub_graphql_mcp": {}}}}
+    all_types_dict = {"components": {"inputs": {"chat": {}}, "tools": {"calculator": {}}}}
 
     filtered = apply_enterprise_first_pass_component_filter(all_types_dict, excluded_component_types={"tools"})
 
-    assert "confluence" in filtered["components"]
+    assert "inputs" in filtered["components"]
     assert "tools" not in filtered["components"]

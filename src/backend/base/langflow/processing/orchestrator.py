@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, TypedDict, cast
 
+from langgraph.graph import END, StateGraph
 from loguru import logger
 
 from langflow.graph.schema import RunOutputs
@@ -56,60 +57,7 @@ async def run_graph_with_orchestrator(
     stream: bool = False,
     fallback_to_env_vars: bool = False,
     event_manager: EventManager | None = None,
-    backend: str = "legacy",
 ) -> list[RunOutputs]:
-    if backend != "langgraph":
-        return await graph.arun(
-            inputs=inputs,
-            inputs_components=inputs_components,
-            types=types,
-            outputs=outputs,
-            session_id=session_id,
-            stream=stream,
-            fallback_to_env_vars=fallback_to_env_vars,
-            event_manager=event_manager,
-        )
-
-    return await _run_with_langgraph(
-        graph=graph,
-        inputs=inputs,
-        inputs_components=inputs_components,
-        types=types,
-        outputs=outputs,
-        session_id=session_id,
-        stream=stream,
-        fallback_to_env_vars=fallback_to_env_vars,
-        event_manager=event_manager,
-    )
-
-
-async def _run_with_langgraph(
-    graph: Graph,
-    inputs: list[dict[str, str]],
-    *,
-    inputs_components: list[list[str]] | None,
-    types: list[InputType | None] | None,
-    outputs: list[str] | None,
-    session_id: str | None,
-    stream: bool,
-    fallback_to_env_vars: bool,
-    event_manager: EventManager | None,
-) -> list[RunOutputs]:
-    try:
-        from langgraph.graph import END, StateGraph
-    except ImportError:
-        logger.warning("LangGraph backend selected but langgraph is not installed; falling back to legacy orchestrator.")
-        return await graph.arun(
-            inputs=inputs,
-            inputs_components=inputs_components,
-            types=types,
-            outputs=outputs,
-            session_id=session_id,
-            stream=stream,
-            fallback_to_env_vars=fallback_to_env_vars,
-            event_manager=event_manager,
-        )
-
     run_configs = _normalize_run_configs(inputs=inputs, inputs_components=inputs_components, types=types)
     if session_id:
         graph.session_id = session_id
