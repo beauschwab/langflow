@@ -1,7 +1,7 @@
 # Skills implementation research report
 
 ## Objective
-Document the current state of repository skills, identify implementation patterns, and provide a practical rollout approach for adding new skills consistently.
+Map the skills concept to the Langflow UI and the agent manager framework so users have a low-code path for bundling domain context and tool access, including a sub-flow authoring option and UX trade-offs.
 
 ## Repository locations reviewed
 - `.agents/skills/`
@@ -17,25 +17,65 @@ Document the current state of repository skills, identify implementation pattern
   - usage patterns and expected outcomes.
 - Some skills include additional artifacts (for example, reference docs) when the skill requires richer operational guidance.
 
+## Mapping skills to the UI and agent manager framework
+- **Skill package**: reusable bundle that combines:
+  - context assets (domain knowledge, prompt constraints, reference snippets),
+  - tool access policy (allowed components/tools),
+  - optional execution logic (sub-flow behavior).
+- **Agent manager role**: attach one or more skill packages to an agent profile so the profile controls both what the agent knows and what it can call.
+- **Flow editor role**: expose skill composition as low-code blocks (configure context + tool scope + optional sub-flow binding) instead of requiring direct markdown editing.
+
+## Low-code implementation approaches in UX
+### Approach A: Skill-first panel in Agent Manager
+- **Experience**: users pick skills from a catalog, then bind them to an agent profile.
+- **Pros**
+  - fastest onboarding; simple mental model for non-technical users.
+  - central governance point for permissions and approved knowledge packs.
+  - easy to version and audit skills per agent profile.
+- **Cons**
+  - less flexible for advanced orchestration.
+  - limited visibility into internal skill execution steps from the flow canvas.
+
+### Approach B: Sub-flow authoring in Flow Editor (skill as flow template)
+- **Experience**: users author a sub-flow that encapsulates context loading + tool calls, then publish it as a skill-like artifact.
+- **Pros**
+  - strongest low-code expressiveness for complex domain workflows.
+  - native visual debugging and iteration in the existing flow editor UX.
+  - natural reuse via sub-flow publishing/versioning.
+- **Cons**
+  - higher UX complexity for first-time users.
+  - requires stronger guardrails to prevent unsafe tool exposure.
+  - version compatibility concerns when sub-flow contracts change.
+
+### Approach C: Hybrid model (recommended)
+- **Experience**: users consume curated skills in Agent Manager, while advanced users can create/edit skill internals as sub-flows in Flow Editor.
+- **Pros**
+  - supports both beginner and power-user paths.
+  - keeps governance centralized while preserving extensibility.
+  - enables progressive disclosure (simple defaults, advanced editing when needed).
+- **Cons**
+  - requires clear ownership boundaries between skill catalog and flow authorship.
+  - needs consistent metadata contracts across manager and editor surfaces.
+
 ## Observed implementation conventions
 1. **Single responsibility per skill**: each skill focuses on one technical domain.
 2. **Explicit trigger guidance**: descriptions include concrete phrases that should trigger invocation.
 3. **Operational guardrails**: skills include what to do and what to avoid.
 4. **Composable structure**: skills can be used together without coupling folder layouts.
 
-## Gaps and risks
-- Trigger language is not fully standardized across all skills, which can reduce invocation consistency.
-- Depth of examples varies across skills, increasing onboarding variability.
-- Validation criteria (how to verify a skill was correctly applied) is not always explicit.
+## Gaps and risks for UI integration
+- Trigger language is not fully standardized across skills, reducing predictability of when a skill is selected/applied (for example, one skill may trigger on "add animation" while another uses broader phrasing like "improve UX").
+- Validation criteria (how to verify context/tool bundles were correctly attached) is not always explicit in existing skill docs.
+- Sub-flow-as-skill introduces drift risk if flow I/O contracts are not versioned and enforced.
 
 ## Recommendations
-1. Define a lightweight skill authoring template for `SKILL.md` sections.
-2. Require a minimum trigger phrase set and one “non-trigger” example.
-3. Add a short validation checklist section to every skill.
-4. Keep optional reference artifacts for complex skills, but standardize naming and placement.
+1. Introduce a shared skill metadata schema used by both Agent Manager UI and Flow Editor sub-flow publishing.
+2. Require explicit fields for bundled context sources, allowed tools, and invocation triggers.
+3. Add a validation checklist in each skill definition to confirm policy, context source, and tool-binding integrity.
+4. Start with a curated catalog in Agent Manager, then add sub-flow authoring behind an advanced toggle.
 
 ## Suggested implementation plan
-1. Publish and adopt a common skill template.
-2. Normalize existing skills to the template in small batches.
-3. Add a review checklist to ensure new skills include triggers, guardrails, and validation.
-4. Periodically audit skill usage outcomes and refine trigger wording.
+1. Define and adopt a common skill metadata/template contract.
+2. Deliver Agent Manager skill catalog UX first (attach/detach, inspect bundled context and tool access).
+3. Add Flow Editor sub-flow publishing as an advanced path that outputs the shared metadata contract from step 1.
+4. Add versioning + compatibility checks for sub-flow-based skills before broad rollout.
