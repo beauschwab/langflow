@@ -1,7 +1,7 @@
-# Langflow to Neva flow (Nevaflow): remaining implementation plan
+# Langflow to Neva flow: remaining implementation plan
 
 ## Objective
-Define a **step-by-step execution plan** for completing the project rename from Langflow/Lang flow to **Neva flow** across source code, folders, components, docs, and agent markdown content, without implementing the rename in this change.
+Define a **step-by-step execution plan** for completing the project rename from Langflow to **Neva flow** across source code, folders, components, docs, and agent markdown content, without implementing the rename in this change.
 
 ## Repository locations reviewed
 - `/home/runner/work/langflow/langflow/pyproject.toml`
@@ -35,6 +35,8 @@ Define a **step-by-step execution plan** for completing the project rename from 
 
 ## Naming target and compatibility rules (decide first)
 1. **Canonical product name** in UI/docs/marketing copy: `Neva flow` (two words).
+   - This is intentionally two words because that is the requested product naming target.
+   - Keep capitalization exactly as `Neva flow` unless title case is explicitly required by a specific UI style guide.
 2. **Canonical technical identifier** for package/module/CLI/file slugs:
    - Use `nevaflow` (single token) consistently for code/package/file identifiers.
 3. **Compatibility policy** (required before edits):
@@ -42,6 +44,7 @@ Define a **step-by-step execution plan** for completing the project rename from 
    - Hard cut-over with migration guide and breaking-change release.
 4. **Case mapping rules** to standardize replacements:
    - Use `Neva flow` in product-facing documentation headings and UI labels.
+   - Use `nevaflow`/`Nevaflow` only for technical identifiers (package names, module paths, class names, CLI binary slugs).
    - `Langflow` -> `Neva flow` (user-facing copy) or `Nevaflow` (class/type identifiers)
    - `langflow` -> `nevaflow` (module names, env vars only if intentionally renamed)
    - `LANGFLOW_*` -> either retain for compatibility, or rename to `NEVAFLOW_*` with alias support
@@ -114,6 +117,7 @@ Define a **step-by-step execution plan** for completing the project rename from 
 ### Phase 6: agent markdown and skill assets (explicit requirement)
 1. Rename skill path and metadata:
    - `.agents/skills/langflow-io-cli` -> `.agents/skills/nevaflow-io-cli` (or chosen token).
+   - Keep the `-io-cli` suffix to preserve the existing skill scope semantics; only rename the product token.
 2. Update `SKILL.md` frontmatter fields (`name`, `description`, tags) and all command examples.
 3. Update cross-skill references mentioning Langflow in:
    - `phoenix-tracing` skill docs and references.
