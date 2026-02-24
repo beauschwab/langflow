@@ -46,7 +46,8 @@ export default function AgentsPage(): JSX.Element {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Agents</h1>
           <p className="text-sm text-muted-foreground">
-            Create and manage your AI agents.
+            Create and manage your AI agents with curated skills and optional
+            sub-flow linking.
           </p>
         </div>
         <button

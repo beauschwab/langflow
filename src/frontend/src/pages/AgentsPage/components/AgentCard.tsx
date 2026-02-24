@@ -20,6 +20,17 @@ export default function AgentCard({
   onEdit,
   onDelete,
 }: AgentCardProps): JSX.Element {
+  const hybridSettings =
+    agent.config &&
+    typeof agent.config === "object" &&
+    "hybrid_settings" in agent.config
+      ? (agent.config.hybrid_settings as {
+          curated_skills?: string[];
+          sub_flow_id?: string | null;
+        })
+      : null;
+  const hybridSkillCount = hybridSettings?.curated_skills?.length ?? 0;
+
   return (
     <Card
       className="group cursor-pointer hover:shadow-md"
@@ -52,6 +63,16 @@ export default function AgentCard({
               {tag}
             </Badge>
           ))}
+          {hybridSkillCount > 0 ? (
+            <Badge variant="outline" size="sm">
+              {`${hybridSkillCount} skill${hybridSkillCount !== 1 ? "s" : ""}`}
+            </Badge>
+          ) : null}
+          {hybridSettings?.sub_flow_id ? (
+            <Badge variant="outline" size="sm">
+              Sub-Flow linked
+            </Badge>
+          ) : null}
         </div>
       </CardContent>
       <CardFooter className="gap-2">
