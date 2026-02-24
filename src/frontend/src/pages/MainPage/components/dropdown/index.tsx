@@ -31,6 +31,10 @@ const DropdownComponent = ({
     downloadFlow(flowData, flowData.name, flowData.description);
     setSuccessData({ title: `${flowData.name} exported successfully` });
   };
+  const handleExportYaml = () => {
+    downloadFlow(flowData, flowData.name, flowData.description, "yaml");
+    setSuccessData({ title: `${flowData.name} exported successfully` });
+  };
   const { handleSelectOptionsChange } = useSelectOptionsChange(
     [flowData.id],
     setErrorData,
@@ -70,7 +74,22 @@ const DropdownComponent = ({
           aria-hidden="true"
           className="mr-2 h-4 w-4"
         />
-        Download
+        Download JSON
+      </DropdownMenuItem>
+      <DropdownMenuItem
+        onClick={(e) => {
+          e.stopPropagation();
+          handleExportYaml();
+        }}
+        className="cursor-pointer"
+        data-testid="btn-download-yaml"
+      >
+        <ForwardedIconComponent
+          name="Download"
+          aria-hidden="true"
+          className="mr-2 h-4 w-4"
+        />
+        Download YAML
       </DropdownMenuItem>
       <DropdownMenuItem
         onClick={(e) => {

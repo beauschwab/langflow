@@ -117,7 +117,7 @@ const SideBarFoldersButtonsComponent = ({
     isDeletingFolder;
 
   const handleUploadFlowsToFolder = () => {
-    createFileUpload().then((files: File[]) => {
+    createFileUpload({ accept: ".json,.yaml,.yml" }).then((files: File[]) => {
       if (files?.length === 0) {
         return;
       }

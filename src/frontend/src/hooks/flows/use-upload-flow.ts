@@ -8,6 +8,7 @@ import useAddFlow from "./use-add-flow";
 const useUploadFlow = () => {
   const addFlow = useAddFlow();
   const paste = useFlowStore((state) => state.paste);
+  const allowedExtensions = new Set(["json", "yaml", "yml"]);
 
   const getFlowsFromFiles = async ({
     files,
@@ -34,9 +35,13 @@ const useUploadFlow = () => {
     files?: File[];
   }): Promise<FlowType[]> => {
     if (!files) {
-      files = await createFileUpload();
+      files = await createFileUpload({ accept: ".json,.yaml,.yml" });
     }
-    if (!files.every((file) => file.type === "application/json")) {
+    if (
+      !files.every((file) =>
+        allowedExtensions.has(file.name.split(".").pop()?.toLowerCase() ?? ""),
+      )
+    ) {
       throw new Error("Invalid file type");
     }
     return await getFlowsFromFiles({

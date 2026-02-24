@@ -25,7 +25,8 @@ const useFileDrop = (folderId: string) => {
     if (e.dataTransfer.types.some((type) => type === "Files")) {
       if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
         const firstFile = e.dataTransfer.files[0];
-        if (firstFile.type === "application/json") {
+        const fileExtension = firstFile.name.split(".").pop()?.toLowerCase();
+        if (["json", "yaml", "yml"].includes(fileExtension ?? "")) {
           uploadFormData(firstFile, folderId);
         } else {
           setErrorData({
