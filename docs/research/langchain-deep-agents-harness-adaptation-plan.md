@@ -811,6 +811,307 @@ Flow Execution (run_graph_internal → orchestrator → Graph._run)
 
 ---
 
+## Sub-agents and context/skills: enablement details and backend changes
+
+This section provides a concrete answer to how sub-agents and context/skills are enabled in both the flow designer UI and the agents page manager, and exactly what backend changes are required.
+
+### How sub-agents are enabled
+
+#### Flow designer UI
+
+The `enable_sub_agents` toggle on the Deep Agent node controls sub-agent delegation. When the user toggles it ON:
+
+1. **`update_build_config()`** fires (via `real_time_refresh`) and makes `sub_agent_max_depth` and `sub_agent_max_iterations` fields visible on the node
+2. During execution, `message_response()` checks the toggle and injects the `delegate_task` StructuredTool into `self.tools`
+3. The LLM can then call `delegate_task(task="...", context="...")` during its reasoning loop
+
+```python
+# In DeepAgentComponent.message_response()
+if self.enable_sub_agents:
+    delegate_tool = self._build_delegate_task_tool()
+    self.tools.append(delegate_tool)
+```
+
+The tool itself spawns an isolated child `AgentExecutor`:
+
+```python
+def _build_delegate_task_tool(self) -> StructuredTool:
+    parent_llm = self.llm
+    max_depth = self.sub_agent_max_depth
+    max_iters = self.sub_agent_max_iterations
+    current_depth = getattr(self, "_sub_agent_depth", 0)
+
+    # Capture parent's external tools (exclude delegate_task to prevent infinite recursion).
+    # This list is built at tool-construction time from the tools already on self.tools.
+    external_tools = [t for t in self.tools if t.name != "delegate_task"]
+
+    async def delegate_task(task: str, context: str | None = None) -> str:
+        next_depth = current_depth + 1
+        if next_depth > max_depth:
+            return f"Cannot delegate: maximum sub-agent depth ({max_depth}) reached."
+
+        # Build sub-agent prompt
+        sub_prompt = ChatPromptTemplate.from_messages([
+            ("system", "You are a focused sub-agent. Complete the assigned task using available tools."),
+            ("placeholder", "{chat_history}"),
+            ("human", f"Context: {context or 'None'}\n\nTask: {task}"),
+            ("placeholder", "{agent_scratchpad}"),
+        ])
+
+        # Create sub-agent with isolated context and incremented depth
+        sub_agent = create_tool_calling_agent(parent_llm, external_tools, sub_prompt)
+        sub_executor = AgentExecutor(
+            agent=sub_agent,
+            tools=external_tools,
+            max_iterations=max_iters,
+            handle_parsing_errors=True,
+        )
+        # Tag the executor so any nested delegate_task knows its depth
+        sub_executor._sub_agent_depth = next_depth
+
+        result = await sub_executor.ainvoke({"input": task})
+        return result.get("output", "Sub-agent completed without output.")
+
+    return StructuredTool.from_function(
+        coroutine=delegate_task,
+        name="delegate_task",
+        description="Delegate a focused subtask to an isolated sub-agent. Use for independent work that doesn't need the full conversation context.",
+        args_schema=DelegateTaskInput,  # Pydantic model with task: str, context: str | None
+    )
+```
+
+**Key design**: The sub-agent inherits the parent's LLM and external tools but gets a fresh conversation context. It does NOT have access to the `delegate_task` tool itself (prevents infinite recursion). The `current_depth` counter enforces the configured `sub_agent_max_depth`.
+
+#### Agent manager UI
+
+In the agents page, sub-agents are controlled through the `config` JSON on the Agent model:
+
+```
+CreateAgentDialog → Capabilities section:
+  Sub-Agents toggle: [ON/OFF]
+  └── When ON, sets config.enable_sub_agents = true
+  └── Advanced: sub_agent_max_depth, sub_agent_max_iterations
+```
+
+When the user clicks "Open in Flow Designer", the config values are mapped to the DeepAgentComponent node's inputs, and the toggle state is reflected in the node's UI.
+
+The AgentCard displays a `[Sub-agents ✓]` badge when `agent.config.enable_sub_agents` is true.
+
+#### Backend changes required for sub-agents
+
+| Change | File | Description |
+|--------|------|-------------|
+| New Pydantic model | `base/agents/schemas.py` (new) | `DelegateTaskInput(BaseModel)` with `task: str`, `context: str \| None` |
+| Tool builder method | `components/agents/deep_agent.py` (new) | `_build_delegate_task_tool()` as shown above |
+| Depth tracking | `components/agents/deep_agent.py` (new) | `_sub_agent_depth` attribute on component instance |
+| Event streaming | `base/agents/events.py` | Add `on_sub_agent_start` / `on_sub_agent_end` event handlers so playground shows sub-agent activity in nested ContentBlocks |
+| ContentBlock type | `schema/content_types.py` | Add `SubAgentContent` type for rendering sub-agent steps in the playground UI |
+
+**No database changes needed** for sub-agents — they are ephemeral execution-time constructs. The configuration is stored in the existing `Agent.config` JSON column.
+
+---
+
+### How context tools and skills are enabled
+
+#### Flow designer UI
+
+The `enable_context_tools` toggle on the Deep Agent node controls context persistence tools. When toggled ON:
+
+1. `message_response()` injects `write_context` and `read_context` StructuredTools into `self.tools`
+2. These tools read/write to a session-scoped key-value store backed by a new database table
+3. The LLM can call `write_context(key="findings", value="...")` and `read_context(key="findings")` during reasoning
+
+```python
+# In DeepAgentComponent.message_response()
+if self.enable_context_tools:
+    # Session ID is always available via the graph object during execution
+    session_id = self.graph.session_id
+    write_tool = self._build_write_context_tool(session_id)
+    read_tool = self._build_read_context_tool(session_id)
+    self.tools.extend([write_tool, read_tool])
+```
+
+The tools use the session service:
+
+```python
+def _build_write_context_tool(self, session_id: str) -> StructuredTool:
+    async def write_context(key: str, value: str) -> str:
+        await self._context_service.set(session_id=session_id, key=key, value=value)
+        return f"Saved context '{key}' ({len(value)} chars)."
+
+    return StructuredTool.from_function(
+        coroutine=write_context,
+        name="write_context",
+        description="Save intermediate results, notes, or data under a named key for later retrieval. Use this to avoid losing important information as the conversation grows.",
+        args_schema=WriteContextInput,  # Pydantic: key: str, value: str
+    )
+
+def _build_read_context_tool(self, session_id: str) -> StructuredTool:
+    async def read_context(key: str) -> str:
+        value = await self._context_service.get(session_id=session_id, key=key)
+        if value is None:
+            return f"No context found for key '{key}'."
+        return value
+
+    return StructuredTool.from_function(
+        coroutine=read_context,
+        name="read_context",
+        description="Retrieve previously saved context by key name. Returns the stored value or a not-found message.",
+        args_schema=ReadContextInput,  # Pydantic: key: str
+    )
+```
+
+#### Agent manager UI
+
+Context tools are controlled through the `config` JSON:
+
+```
+CreateAgentDialog → Capabilities section:
+  Context Tools toggle: [ON/OFF]
+  └── When ON, sets config.enable_context_tools = true
+```
+
+The AgentCard displays a `[Context ✓]` badge when `agent.config.enable_context_tools` is true.
+
+#### Skills in the agent manager
+
+Skills (dynamic tool registries loaded at runtime from filesystem sources) are a more advanced Deep Agents concept. In Langflow's agent manager, skills map to the existing **tools** selection mechanism:
+
+```
+CreateAgentDialog → Tools section:
+  Available tools grid (currently AVAILABLE_TOOLS from constants.ts)
+  └── Each tool maps to a Langflow component name
+  └── Stored as agent.tools = ["SharePointFilesLoader", "TavilySearch", ...]
+```
+
+When "Open in Flow Designer" creates a flow, these tool names are resolved to component nodes and connected to the DeepAgentComponent's `tools` HandleInput via edges. This is how the agent manager "skills" translate to the flow designer's tool connection model.
+
+For a dedicated skills system (loading tools from custom Python files at runtime), a future enhancement would add:
+
+```
+CreateAgentDialog → Skills section (future):
+  [+ Add Skill File] → Upload .py file with @tool decorated functions
+  └── Stored as agent.config.skills = [{path: "...", name: "..."}]
+  └── At execution time, dynamically loaded as StructuredTool objects
+```
+
+This mirrors Deep Agents' `SkillsMiddleware` but uses Langflow's existing custom component upload infrastructure rather than raw filesystem access.
+
+#### Backend changes required for context tools
+
+| Change | File | Description |
+|--------|------|-------------|
+| **New database table** | `services/database/models/agent_context/model.py` (new) | `AgentContextStore` table with `session_id`, `key`, `value` (Text), `created_at`, `updated_at` columns |
+| **Alembic migration** | `alembic/versions/` (new) | Migration to create `agent_context_store` table |
+| **Context service** | `services/agent_context/service.py` (new) | `AgentContextService` with `get(session_id, key)`, `set(session_id, key, value)`, `get_all(session_id)`, `delete(session_id, key)` methods |
+| **Service registration** | `services/manager.py` | Register `AgentContextService` in the service manager |
+| **Pydantic schemas** | `base/agents/schemas.py` (new) | `WriteContextInput(BaseModel)`, `ReadContextInput(BaseModel)` |
+| **Tool builders** | `components/agents/deep_agent.py` (new) | `_build_write_context_tool()`, `_build_read_context_tool()` as shown above |
+| **ContentBlock type** | `schema/content_types.py` | Add `ContextContent` type for rendering context read/write operations in playground |
+
+##### AgentContextStore database model
+
+```python
+# services/database/models/agent_context/model.py
+
+class AgentContextStore(SQLModel, table=True):
+    __tablename__ = "agent_context_store"
+
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    session_id: str = Field(index=True, nullable=False)
+    key: str = Field(nullable=False)
+    value: str = Field(sa_column=Column(Text, nullable=False))
+    created_at: datetime = Field(
+        sa_column=Column(DateTime, default=func.now(), nullable=False)
+    )
+    updated_at: datetime = Field(
+        sa_column=Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)
+    )
+
+    __table_args__ = (
+        UniqueConstraint("session_id", "key", name="unique_context_key_per_session"),
+    )
+```
+
+##### AgentContextService
+
+```python
+# services/agent_context/service.py
+
+class AgentContextService:
+    def __init__(self, session_service):
+        self.session_service = session_service
+
+    async def get(self, session_id: str, key: str) -> str | None:
+        async with self.session_service.get_session() as db:
+            result = await db.exec(
+                select(AgentContextStore)
+                .where(AgentContextStore.session_id == session_id)
+                .where(AgentContextStore.key == key)
+            )
+            record = result.first()
+            return record.value if record else None
+
+    async def set(self, session_id: str, key: str, value: str) -> None:
+        async with self.session_service.get_session() as db:
+            existing = await db.exec(
+                select(AgentContextStore)
+                .where(AgentContextStore.session_id == session_id)
+                .where(AgentContextStore.key == key)
+            )
+            record = existing.first()
+            if record:
+                record.value = value
+                # updated_at is handled by SQLAlchemy onupdate=func.now()
+            else:
+                record = AgentContextStore(session_id=session_id, key=key, value=value)
+                db.add(record)
+            await db.commit()
+
+    async def get_all(self, session_id: str) -> dict[str, str]:
+        async with self.session_service.get_session() as db:
+            results = await db.exec(
+                select(AgentContextStore)
+                .where(AgentContextStore.session_id == session_id)
+            )
+            return {r.key: r.value for r in results.all()}
+
+    async def delete(self, session_id: str, key: str) -> bool:
+        async with self.session_service.get_session() as db:
+            result = await db.exec(
+                select(AgentContextStore)
+                .where(AgentContextStore.session_id == session_id)
+                .where(AgentContextStore.key == key)
+            )
+            record = result.first()
+            if record:
+                await db.delete(record)
+                await db.commit()
+                return True
+            return False
+```
+
+---
+
+### Summary of all backend changes
+
+| Category | Files to create | Files to modify |
+|----------|----------------|-----------------|
+| **Deep Agent component** | `components/agents/deep_agent.py`, `base/agents/schemas.py` | `components/agents/__init__.py` |
+| **Context store** | `services/database/models/agent_context/model.py`, `services/agent_context/service.py` | `services/manager.py`, `alembic/versions/` (new migration) |
+| **Event streaming** | — | `base/agents/events.py`, `schema/content_types.py` |
+| **Frontend constants** | — | `pages/AgentsPage/components/constants.ts` |
+| **Frontend types** | — | `types/agents/index.ts` (extend config type) |
+| **Agent manager dialog** | — | `pages/AgentsPage/components/CreateAgentDialog.tsx`, `pages/AgentsPage/components/AgentCard.tsx` |
+
+**No changes to existing Agent model** — the `config: dict` JSON column already supports arbitrary configuration. The capability flags (`enable_sub_agents`, `enable_context_tools`, etc.) are stored as keys in this existing JSON column.
+
+**No changes to existing AgentComponent** — the new `DeepAgentComponent` is a separate component class that coexists with the standard Agent in the `agents` category.
+
+**No changes to orchestrator or Graph._run()** — sub-agents and context tools are injected as standard StructuredTools into the existing AgentExecutor loop. They don't require changes to the graph execution pipeline.
+
+---
+
 ## References
 
 - [LangChain Deep Agents Repository](https://github.com/langchain-ai/deepagents)
