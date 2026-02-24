@@ -1,23 +1,19 @@
-# Copilot instructions for Langflow backend architecture work
+# Copilot instructions for Langflow backend work
 
 ## Scope and priorities
-- Preserve the existing Langflow UI and tool/component framework as the product surface.
-- Treat the Python backend graph/agent execution layer as the primary migration target.
-- Prefer incremental, backward-compatible changes that keep existing API contracts stable.
+- Preserve the existing Langflow UI and component/tool framework as the product surface.
+- Treat the Python backend graph/agent execution layer as the primary change surface.
+- Prefer incremental, backward-compatible changes that preserve API contracts.
 
-## Current backend orchestration anchors
-- Flow execution currently runs through `langflow.graph.graph.base.Graph` and `Graph.arun(...)`.
-- Execution scheduling is handled by `RunnableVerticesManager`.
-- Runtime state is handled by `GraphStateManager` and state services.
-- API entry points use `run_graph_internal(...)` and flow build/event queue endpoints.
+## Current backend orchestration (authoritative paths)
+- API entry point: `langflow.processing.process.run_graph_internal(...)`.
+- Orchestration runtime: `langflow.processing.orchestrator.run_graph_with_orchestrator(...)` (LangGraph `StateGraph`).
+- Graph execution primitive: `langflow.graph.graph.base.Graph._run(...)`.
+- Existing graph scheduling/state internals still exist in `Graph` (`RunnableVerticesManager`, `GraphStateManager`) and must remain compatible.
 
-## LangGraph migration intent
-- Replace custom graph scheduling/state progression with a LangGraph-backed runtime.
-- Keep Langflow components, tools, and workflow builder semantics intact.
-- Add an adapter layer so existing flow JSON can compile to LangGraph state graphs.
-
-## Practical guidance for implementation tasks
-- Minimize surface-area changes and avoid unnecessary refactors.
-- Preserve response payloads, event stream behavior, and session semantics.
-- Add migration behind a feature flag first; keep current graph engine as fallback.
-- When changing orchestration logic, update targeted backend tests around graph execution, state updates, and streaming events.
+## Best-practice implementation guidance
+- Make the smallest possible change required for the task; avoid broad refactors.
+- Keep behavior stable: response payload shape, SSE/event streaming, and session semantics.
+- Reuse existing components/services/utilities rather than introducing parallel abstractions.
+- When changing execution or orchestration code, add/update focused backend tests near the touched area.
+- Prefer explicit error handling with actionable messages; do not leak secrets or raw internal traces.
