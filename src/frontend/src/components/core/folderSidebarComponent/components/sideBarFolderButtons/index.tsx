@@ -363,7 +363,7 @@ const SideBarFoldersButtonsComponent = ({
               data-testid="sidebar-nav-flows-section"
               className="text-[13px]"
             >
-              <ForwardedIconComponent name="Home" className="h-4 w-4" />
+              <ForwardedIconComponent name="FolderOpen" className="h-4 w-4" />
               My Flows
             </SidebarMenuButton>
           </SidebarMenuItem>
