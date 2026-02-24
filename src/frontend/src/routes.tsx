@@ -9,7 +9,6 @@ import { ProtectedAdminRoute } from "./components/authorization/authAdminGuard";
 import { ProtectedRoute } from "./components/authorization/authGuard";
 import { ProtectedLoginRoute } from "./components/authorization/authLoginGuard";
 import { AuthSettingsGuard } from "./components/authorization/authSettingsGuard";
-import { StoreGuard } from "./components/authorization/storeGuard";
 import ContextWrapper from "./contexts";
 import { CustomNavigate } from "./customization/components/custom-navigate";
 import { BASENAME } from "./customization/config-constants";
@@ -33,7 +32,6 @@ import GlobalVariablesPage from "./pages/SettingsPage/pages/GlobalVariablesPage"
 import MessagesPage from "./pages/SettingsPage/pages/messagesPage";
 import ShortcutsPage from "./pages/SettingsPage/pages/ShortcutsPage";
 import StoreApiKeyPage from "./pages/SettingsPage/pages/StoreApiKeyPage";
-import StorePage from "./pages/StorePage";
 import ViewPage from "./pages/ViewPage";
 
 const AdminPage = lazy(() => import("./pages/AdminPage"));
@@ -114,19 +112,11 @@ const router = createBrowserRouter(
                   <Route path="agents" element={<AgentsPage />} />
                   <Route
                     path="store"
-                    element={
-                      <StoreGuard>
-                        <StorePage />
-                      </StoreGuard>
-                    }
+                    element={<CustomNavigate replace to="/agents" />}
                   />
                   <Route
                     path="store/:id/"
-                    element={
-                      <StoreGuard>
-                        <StorePage />
-                      </StoreGuard>
-                    }
+                    element={<CustomNavigate replace to="/agents" />}
                   />
                 </Route>
                 <Route path="settings" element={<SettingsPage />}>

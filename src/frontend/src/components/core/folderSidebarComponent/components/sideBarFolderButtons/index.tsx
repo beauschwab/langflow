@@ -55,8 +55,7 @@ const SideBarFoldersButtonsComponent = ({
   const pathname = location.pathname;
   const navigate = useCustomNavigate();
   const isAgentsSection = pathname.includes("/agents");
-  const isStoreSection = pathname.includes("/store");
-  const isFlowsSection = !isAgentsSection && !isStoreSection;
+  const isFlowsSection = !isAgentsSection;
   const folders = useFolderStore((state) => state.folders);
   const loading = !folders;
   const refInput = useRef<HTMLInputElement>(null);
@@ -379,18 +378,7 @@ const SideBarFoldersButtonsComponent = ({
               Agents
             </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              size="md"
-              isActive={isStoreSection}
-              onClick={() => navigate("/store")}
-              data-testid="sidebar-nav-store-section"
-              className="text-[13px]"
-            >
-              <ForwardedIconComponent name="Store" className="h-4 w-4" />
-              Store
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>

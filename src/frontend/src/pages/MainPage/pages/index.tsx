@@ -26,8 +26,7 @@ export default function CollectionPage(): JSX.Element {
   const queryClient = useQueryClient();
   const location = useLocation();
   const pathname = location.pathname;
-  const isNonFlowSection =
-    pathname.includes("/agents") || pathname.includes("/store");
+  const isNonFlowSection = pathname.includes("/agents");
 
   useEffect(() => {
     return () => queryClient.removeQueries({ queryKey: ["useGetFolder"] });
