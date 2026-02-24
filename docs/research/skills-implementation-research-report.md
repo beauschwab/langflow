@@ -79,3 +79,33 @@ Map the skills concept to the Langflow UI and the agent manager framework so use
 2. Deliver Agent Manager skill catalog UX first (attach/detach, inspect bundled context and tool access).
 3. Add Flow Editor sub-flow publishing as an advanced path that outputs the shared metadata contract from step 1.
 4. Add versioning + compatibility checks for sub-flow-based skills before broad rollout.
+
+## Further research implications
+1. **Governance model**: define ownership boundaries between platform owners (skill schema/policies) and domain teams (skill content/sub-flow logic).
+2. **Discovery and ranking**: determine how the Agent Manager should recommend skills (manual selection only vs assisted suggestion from user intent).
+3. **Evaluation framework**: define success metrics for hybrid adoption (attach rate, task completion time, fallback-to-manual-edit rate).
+4. **Compatibility lifecycle**: establish versioning/deprecation policy for skill contracts and sub-flow interfaces.
+5. **Trust and safety**: classify tool-risk tiers and map each tier to review/approval flows before skills are publishable in shared catalogs.
+
+## Hybrid approach implementation (concrete)
+### Phase 1: Agent Manager MVP (curated skills)
+- Add a **Skills** section in Agent Manager where users can:
+  - browse approved skills,
+  - inspect bundled context and allowed tools,
+  - attach/detach skills per agent profile.
+- Persist attached skill metadata with stable identifiers and explicit versions.
+- Enforce permission checks so only allowed tools in attached skills are exposed at runtime.
+
+### Phase 2: Flow Editor advanced path (sub-flow-backed skills)
+- Add **Publish as Skill** action for eligible sub-flows in Flow Editor.
+- Require sub-flow input/output contract declaration before publishing.
+- Validate published artifacts against the same shared skill metadata contract from the MVP.
+- Route published artifacts into the same Agent Manager catalog with an `advanced` indicator.
+
+### Phase 3: Runtime and operations
+- Resolve skill attachments at run time as:
+  - context bundle (prompt/domain memory injection),
+  - tool access filter (allowlist enforcement),
+  - optional sub-flow invocation hook.
+- Log skill usage per run for observability, governance audits, and relevance tuning.
+- Add rollback controls: disable a skill version without deleting historical run traces.
