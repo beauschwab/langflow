@@ -1,6 +1,8 @@
+import sys
+from types import ModuleType
+
 import pytest
 
-from langflow.graph.schema import RunOutputs
 from langflow.processing.orchestrator import run_graph_with_orchestrator
 
 
@@ -41,16 +43,14 @@ class FakeStateGraph:
 
 @pytest.mark.asyncio
 async def test_langgraph_backend_uses_graph_private_run(monkeypatch):
-    from types import ModuleType
-
     graph = DummyGraph()
     fake_langgraph = ModuleType("langgraph")
     fake_langgraph_graph = ModuleType("langgraph.graph")
     fake_langgraph_graph.END = "END"
     fake_langgraph_graph.StateGraph = FakeStateGraph
     fake_langgraph.graph = fake_langgraph_graph
-    monkeypatch.setitem(__import__("sys").modules, "langgraph", fake_langgraph)
-    monkeypatch.setitem(__import__("sys").modules, "langgraph.graph", fake_langgraph_graph)
+    monkeypatch.setitem(sys.modules, "langgraph", fake_langgraph)
+    monkeypatch.setitem(sys.modules, "langgraph.graph", fake_langgraph_graph)
 
     result = await run_graph_with_orchestrator(
         graph=graph,
