@@ -276,6 +276,7 @@ import { ClickhouseIcon } from "../icons/Clickhouse";
 import { CloudflareIcon } from "../icons/Cloudflare";
 import { CohereIcon } from "../icons/Cohere";
 import { ComposioIcon } from "../icons/Composio";
+import { ConfluenceIcon } from "../icons/Confluence";
 import { CouchbaseIcon } from "../icons/Couchbase";
 import { CrewAiIcon } from "../icons/CrewAI";
 import { DeepSeekIcon } from "../icons/DeepSeek";
@@ -547,13 +548,24 @@ export const SIDEBAR_CATEGORIES = [
   { display_name: "Vector Stores", name: "vectorstores", icon: "Layers" },
   { display_name: "Embeddings", name: "embeddings", icon: "Binary" },
   { display_name: "Agents", name: "agents", icon: "Bot" },
+  { display_name: "Chains", name: "chains", icon: "Link" },
+  { display_name: "Loaders", name: "documentloaders", icon: "Paperclip" },
+  { display_name: "Link Extractors", name: "link_extractors", icon: "Link2" },
   { display_name: "Memories", name: "memories", icon: "Cpu" },
+  { display_name: "Output Parsers", name: "output_parsers", icon: "Compass" },
+  { display_name: "Prototypes", name: "prototypes", icon: "FlaskConical" },
+  { display_name: "Retrievers", name: "retrievers", icon: "FileSearch" },
+  { display_name: "Text Splitters", name: "textsplitters", icon: "Scissors" },
+  { display_name: "Toolkits", name: "toolkits", icon: "Package2" },
   { display_name: "Tools", name: "tools", icon: "Hammer" },
   { display_name: "Logic", name: "logic", icon: "ArrowRightLeft" },
   { display_name: "Helpers", name: "helpers", icon: "Wand2" },
 ];
 
-export const SIDEBAR_BUNDLES = [];
+export const SIDEBAR_BUNDLES = [
+  { display_name: "Confluence", name: "confluence", icon: "Confluence" },
+  { display_name: "SharePoint", name: "sharepoint", icon: "SharePoint" },
+];
 
 export const categoryIcons = {
   saved_components: GradientSave,
@@ -567,7 +579,16 @@ export const categoryIcons = {
   embeddings: Binary,
   agents: Bot,
   astra_assistants: Sparkles,
+  chains: Link,
+  documentloaders: Paperclip,
+  langchain_utilities: PocketKnife,
+  link_extractors: Link2,
   memories: Cpu,
+  output_parsers: Compass,
+  prototypes: FlaskConical,
+  retrievers: FileSearch,
+  textsplitters: Scissors,
+  toolkits: Package2,
   tools: Hammer,
   custom: Edit,
   custom_components: GradientInfinity,
@@ -585,7 +606,16 @@ export const nodeIconsLucide: iconsType = {
   embeddings: Binary,
   agents: Bot,
   astra_assistants: Sparkles,
+  chains: Link,
+  documentloaders: Paperclip,
+  langchain_utilities: PocketKnife,
+  link_extractors: Link2,
   memories: Cpu,
+  output_parsers: Compass,
+  prototypes: FlaskConical,
+  retrievers: FileSearch,
+  textsplitters: Scissors,
+  toolkits: Package2,
   tools: Hammer,
   custom_components: GradientInfinity,
   ChatInput: MessagesSquare,
@@ -711,6 +741,7 @@ export const nodeIconsLucide: iconsType = {
   Discord: FaDiscord,
   MistralAI: MistralIcon,
   Upstash: UpstashSvgIcon,
+  Confluence: ConfluenceIcon,
   AIML: AIMLIcon,
   "AI/ML": AIMLIcon,
   GitLoader: GitLoaderIcon,
@@ -786,6 +817,7 @@ export const nodeIconsLucide: iconsType = {
   SlidersHorizontal,
   GoogleDrive: GoogleDriveIcon,
   OneDrive: OneDriveIcon,
+  SharePoint: OneDriveIcon,
   Dropbox: DropboxIcon,
   Palette,
   RefreshCcwDot,
