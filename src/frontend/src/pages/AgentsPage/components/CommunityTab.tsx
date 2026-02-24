@@ -361,7 +361,7 @@ export default function CommunityTab(): JSX.Element {
             <div className="flex h-full w-full flex-col">
               <div className="flex w-full flex-col gap-4">
                 <div className="grid w-full gap-4">
-                  {selectFilter != "all" ? (
+                  {selectFilter !== "all" ? (
                     <>
                       You haven't{" "}
                       {selectFilter === "createdbyme" ? "created" : "liked"}{" "}
@@ -370,7 +370,7 @@ export default function CommunityTab(): JSX.Element {
                   ) : (
                     <>
                       There are no{" "}
-                      {tabActive == "Flows" ? "Flows" : "Components"} with the
+                      {tabActive === "Flows" ? "Flows" : "Components"} with the
                       selected filters.
                     </>
                   )}
