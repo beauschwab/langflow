@@ -34,14 +34,14 @@ Define a **step-by-step execution plan** for completing the project rename from 
   - Frontend assets/tests: `src/frontend/src/assets/LangflowLogo*.svg`, `langflowShortcuts.spec.ts`, `add-flow-to-test-on-empty-langflow.ts`
 
 ## Naming target and compatibility rules (decide first)
-1. **Canonical product name** in UI/docs/marketing copy: `Neva flow`.
-2. **Canonical technical identifier** for package/module/CLI/file slugs: pick one and apply consistently:
-   - Recommended: `nevaflow` (single token).
+1. **Canonical product name** in UI/docs/marketing copy: `Neva flow` (two words).
+2. **Canonical technical identifier** for package/module/CLI/file slugs:
+   - Use `nevaflow` (single token) consistently for code/package/file identifiers.
 3. **Compatibility policy** (required before edits):
    - Keep `langflow` imports/CLI aliases temporarily (deprecation window), or
    - Hard cut-over with migration guide and breaking-change release.
 4. **Case mapping rules** to standardize replacements:
-   - `Langflow` -> `Neva flow` (UI/docs text) or `Nevaflow` (class/type names)
+   - `Langflow` -> `Neva flow` (user-facing copy) or `Nevaflow` (class/type identifiers)
    - `langflow` -> `nevaflow` (module names, env vars only if intentionally renamed)
    - `LANGFLOW_*` -> either retain for compatibility, or rename to `NEVAFLOW_*` with alias support
 
