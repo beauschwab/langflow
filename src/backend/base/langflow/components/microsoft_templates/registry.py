@@ -282,3 +282,20 @@ def render_template(name: str, values: dict[str, str]) -> str:
         msg = f"Template '{name}' not found."
         raise ValueError(msg)
     return tpl["render"](values)
+
+
+def parse_field_mapping(raw: str | None) -> dict[str, str]:
+    """Parse ``key: value`` lines into a dict.
+
+    Used by both Outlook and Teams components to convert the
+    Field Mapping multiline input into template field values.
+    """
+    mapping: dict[str, str] = {}
+    if not raw:
+        return mapping
+    for line in raw.splitlines():
+        line = line.strip()
+        if ":" in line:
+            key, value = line.split(":", 1)
+            mapping[key.strip()] = value.strip()
+    return mapping

@@ -7,6 +7,7 @@ from langflow.components.microsoft_outlook import OutlookSendEmailComponent
 from langflow.components.microsoft_templates.registry import (
     get_outlook_template_names,
     get_template,
+    parse_field_mapping,
     render_template,
 )
 
@@ -174,7 +175,7 @@ def test_template_fields_exposed():
 
 def test_parse_field_mapping():
     raw = "title: My Report\nsummary: All good\nmetrics: Revenue: $5M, Users: 1K"
-    result = OutlookSendEmailComponent._parse_field_mapping_str(raw)
+    result = parse_field_mapping(raw)
     assert result["title"] == "My Report"
     assert result["summary"] == "All good"
     assert result["metrics"] == "Revenue: $5M, Users: 1K"

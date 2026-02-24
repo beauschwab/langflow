@@ -9,6 +9,7 @@ from langflow.components.microsoft_templates.registry import (
     get_outlook_template_names,
     get_teams_template_names,
     get_template,
+    parse_field_mapping,
     render_template,
 )
 
@@ -185,3 +186,23 @@ def test_all_templates_render_without_error():
         result = render_template(name, {})
         assert isinstance(result, str)
         assert len(result) > 0
+
+
+# ---------------------------------------------------------------------------
+# Shared helper: parse_field_mapping
+# ---------------------------------------------------------------------------
+
+
+def test_parse_field_mapping_basic():
+    result = parse_field_mapping("title: My Report\nsummary: All good")
+    assert result == {"title": "My Report", "summary": "All good"}
+
+
+def test_parse_field_mapping_with_colons_in_value():
+    result = parse_field_mapping("metrics: Revenue: $5M, Users: 1K")
+    assert result["metrics"] == "Revenue: $5M, Users: 1K"
+
+
+def test_parse_field_mapping_empty():
+    assert parse_field_mapping("") == {}
+    assert parse_field_mapping(None) == {}

@@ -15,6 +15,7 @@ from langflow.components.microsoft_templates.registry import (
     get_outlook_template_names,
     get_teams_template_names,
     get_template,
+    parse_field_mapping,
     render_template,
 )
 
@@ -22,5 +23,6 @@ __all__ = [
     "get_outlook_template_names",
     "get_teams_template_names",
     "get_template",
+    "parse_field_mapping",
     "render_template",
 ]

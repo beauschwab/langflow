@@ -7,6 +7,7 @@ from langflow.components.microsoft_teams import TeamsSendMessageComponent
 from langflow.components.microsoft_templates.registry import (
     get_teams_template_names,
     get_template,
+    parse_field_mapping,
     render_template,
 )
 
@@ -162,7 +163,7 @@ def test_adaptive_card_detection():
 
 def test_parse_field_mapping():
     raw = "title: Sprint Review\nsummary: All done\nfacts: Velocity: 42, Stories: 8"
-    result = TeamsSendMessageComponent._parse_field_mapping_str(raw)
+    result = parse_field_mapping(raw)
     assert result["title"] == "Sprint Review"
     assert result["summary"] == "All done"
     assert result["facts"] == "Velocity: 42, Stories: 8"

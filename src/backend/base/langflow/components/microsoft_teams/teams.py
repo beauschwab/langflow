@@ -3,6 +3,7 @@ import httpx
 from langflow.components.microsoft_templates.registry import (
     get_teams_template_names,
     get_template,
+    parse_field_mapping,
     render_template,
 )
 from langflow.custom import Component
@@ -238,21 +239,8 @@ class TeamsSendMessageComponent(Component):
         stripped = content.strip()
         return stripped.startswith("{") and '"AdaptiveCard"' in stripped
 
-    @staticmethod
-    def _parse_field_mapping_str(raw: str | None) -> dict[str, str]:
-        """Parse ``key: value`` lines into a dict."""
-        mapping: dict[str, str] = {}
-        if not raw:
-            return mapping
-        for line in raw.splitlines():
-            line = line.strip()
-            if ":" in line:
-                key, value = line.split(":", 1)
-                mapping[key.strip()] = value.strip()
-        return mapping
-
     def _parse_field_mapping(self) -> dict[str, str]:
-        return self._parse_field_mapping_str(self.field_mapping)
+        return parse_field_mapping(self.field_mapping)
 
     @staticmethod
     def _build_content_blocks(rendered_content: str, result: Data) -> list[dict]:
