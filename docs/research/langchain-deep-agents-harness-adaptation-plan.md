@@ -405,6 +405,412 @@ For the stated goal of adapting Deep Agents patterns to the Langflow LangGraph b
 - **Risk**: Migrating from AgentExecutor to LangGraph react agent may break existing event streaming.
   - **Mitigation**: Phase the migration behind a feature flag and maintain AgentExecutor as fallback.
 
+---
+
+## Deep Agent node design for flow designer
+
+This section describes a concrete design for a custom Deep Agent node in the Langflow flow designer that exposes the planning, context management, sub-agent delegation, and enhanced prompt capabilities from the Deep Agents harness. It also covers integration as a template in the agents page manager framework.
+
+### Design approach
+
+The Deep Agent node extends the existing `AgentComponent` pattern rather than replacing it. It reuses the proven dynamic model provider selection, tool HandleInput, and memory integration while adding new capability toggles and configuration surfaces. This follows the same `BoolInput` toggle pattern used by the existing `add_current_date_tool` input.
+
+### Node inputs specification
+
+The `DeepAgentComponent` node exposes the following inputs, organized into logical groups. Inputs marked `advanced=True` are hidden by default and appear in the node's advanced settings panel or when an edge is connected.
+
+#### Core inputs (always visible)
+
+| Input name | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `agent_llm` | DropdownInput | `"OpenAI"` | Model provider selection (same as current Agent) with `real_time_refresh=True` |
+| `system_prompt` | MultilineInput | Enhanced Deep Agent prompt | Agent instructions with built-in behavioral scaffolding |
+| `tools` | HandleInput | `[]` | External tools connected from other nodes |
+| `input_value` | MessageTextInput | `""` | User task/input for the agent |
+
+#### Capability toggles (visible, grouped)
+
+| Input name | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `enable_planning` | BoolInput | `True` | Adds `write_todos` tool for task breakdown and progress tracking |
+| `enable_context_tools` | BoolInput | `True` | Adds `write_context` / `read_context` tools for intermediate result persistence |
+| `enable_sub_agents` | BoolInput | `False` | Adds `delegate_task` tool for spawning isolated sub-agent workers |
+| `enable_summarization` | BoolInput | `False` | Enables auto-summarization when context exceeds token threshold |
+
+#### Advanced configuration (hidden by default)
+
+| Input name | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `max_iterations` | IntInput | `25` | Maximum agent loop iterations (higher default than standard Agent's 15) |
+| `max_context_tokens` | IntInput | `100000` | Token threshold that triggers summarization (requires `enable_summarization`) |
+| `summarization_keep_recent` | IntInput | `10` | Number of recent messages to preserve during summarization |
+| `sub_agent_max_depth` | IntInput | `2` | Maximum sub-agent nesting depth (requires `enable_sub_agents`) |
+| `sub_agent_max_iterations` | IntInput | `15` | Max iterations per sub-agent |
+| `add_current_date_tool` | BoolInput | `True` | Adds current date tool (same as current Agent) |
+| `handle_parsing_errors` | BoolInput | `True` | Error recovery mode |
+| `verbose` | BoolInput | `True` | Logging verbosity |
+| Memory inputs | (from MemoryComponent) | — | Chat history configuration |
+
+### Node outputs
+
+| Output name | Type | Description |
+|------------|------|-------------|
+| `response` | Message | Final agent response with `ContentBlock` steps |
+
+### Dynamic field behavior
+
+The node uses `update_build_config()` to show/hide fields based on capability toggles:
+
+- When `enable_summarization` is toggled ON → `max_context_tokens` and `summarization_keep_recent` become visible
+- When `enable_sub_agents` is toggled ON → `sub_agent_max_depth` and `sub_agent_max_iterations` become visible
+- When `enable_planning` or `enable_context_tools` is toggled, no additional fields appear — they simply inject/remove the respective built-in tools
+
+This mirrors the existing pattern where `agent_llm` dropdown dynamically shows/hides provider-specific fields via `real_time_refresh`.
+
+### Built-in tools injected by capability toggles
+
+#### Planning (`enable_planning=True`)
+
+```
+write_todos tool:
+  - Input: { todos: list[{task: str, status: "pending"|"in_progress"|"done"}] }
+  - Output: Formatted todo list string
+  - Stored in: Agent message content_blocks as a dedicated TodoContent block
+```
+
+The agent can call `write_todos` at any point to create, update, or check off tasks. The todo state is rendered in the playground UI as a checklist within the agent's response card.
+
+#### Context tools (`enable_context_tools=True`)
+
+```
+write_context tool:
+  - Input: { key: str, value: str }
+  - Output: Confirmation string
+  - Stored in: Session-scoped key-value store (database-backed)
+
+read_context tool:
+  - Input: { key: str }
+  - Output: Stored value string
+  - Reads from: Same session-scoped store
+```
+
+These tools allow the agent to offload intermediate results, notes, and large outputs outside of the message history, preventing context overflow.
+
+#### Sub-agent delegation (`enable_sub_agents=True`)
+
+```
+delegate_task tool:
+  - Input: { task: str, context: str | None }
+  - Output: Sub-agent's final response string
+  - Behavior: Spawns a new AgentComponent with isolated context
+  - Constraints: Respects sub_agent_max_depth, sub_agent_max_iterations
+```
+
+The sub-agent inherits the parent's LLM model and external tools but operates in a fresh context window. Results are returned as a string to the parent agent.
+
+### Enhanced default system prompt
+
+The `system_prompt` default value is upgraded from the basic "You are a helpful assistant" to a structured behavioral prompt inspired by Deep Agents:
+
+```
+You are an intelligent assistant with access to tools for completing tasks.
+
+## How to work
+
+1. **Understand first** — Read the user's request carefully. If ambiguous, ask for clarification.
+2. **Plan** — For complex tasks, use write_todos to break the work into steps.
+3. **Act** — Execute each step using available tools. Work accurately and efficiently.
+4. **Verify** — Check your work against what was asked. Iterate if needed.
+
+## Communication style
+
+- Be concise and direct. Avoid unnecessary preamble.
+- Don't say "I'll now do X" — just do it.
+- For longer tasks, provide brief progress updates.
+
+## Tool usage
+
+- Use tools when they can help. Don't guess when a tool can provide the answer.
+- If a tool fails, analyze why before retrying with a different approach.
+- Save intermediate results with write_context if they'll be needed later.
+```
+
+### Node visual design
+
+The node renders in the flow designer with:
+- **Icon**: `bot` (same as current Agent, from the `agents` SIDEBAR_CATEGORY)
+- **Color**: Purple (`#903BBE` — the existing `agents` category color)
+- **Display name**: "Deep Agent"
+- **Capability badges**: Small toggle indicators for enabled capabilities (Planning ✓, Context ✓, Sub-agents ✗, Summarization ✗)
+- **Tool handles**: Same left-side HandleInput for connecting external tools
+
+### Backend component class structure
+
+```python
+class DeepAgentComponent(LCToolsAgentComponent):
+    display_name = "Deep Agent"
+    description = "Advanced agent with planning, context management, and sub-agent delegation."
+    icon = "bot"
+    name = "DeepAgent"
+
+    inputs = [
+        # Core: model provider, system prompt, tools, input
+        DropdownInput(name="agent_llm", ...),  # same as AgentComponent
+        MultilineInput(name="system_prompt", value=DEEP_AGENT_PROMPT, ...),
+        *LCToolsAgentComponent._base_inputs,
+
+        # Capability toggles
+        BoolInput(name="enable_planning", display_name="Planning", value=True,
+                  info="Adds write_todos tool for task breakdown and progress tracking."),
+        BoolInput(name="enable_context_tools", display_name="Context Tools", value=True,
+                  info="Adds write_context/read_context tools for intermediate result persistence."),
+        BoolInput(name="enable_sub_agents", display_name="Sub-Agents", value=False,
+                  info="Adds delegate_task tool for spawning isolated sub-agent workers."),
+        BoolInput(name="enable_summarization", display_name="Summarization", value=False,
+                  info="Auto-summarizes conversation when context exceeds token threshold.",
+                  real_time_refresh=True),
+
+        # Advanced config
+        IntInput(name="max_context_tokens", value=100000, advanced=True, ...),
+        IntInput(name="summarization_keep_recent", value=10, advanced=True, ...),
+        IntInput(name="sub_agent_max_depth", value=2, advanced=True, ...),
+        IntInput(name="sub_agent_max_iterations", value=15, advanced=True, ...),
+        *memory_inputs,
+        BoolInput(name="add_current_date_tool", value=True, advanced=True, ...),
+    ]
+
+    async def message_response(self) -> Message:
+        # 1. Build LLM model (same as AgentComponent)
+        # 2. Retrieve memory/chat history
+        # 3. Inject capability tools based on toggles
+        # 4. Optionally wrap with summarization
+        # 5. Run agent and return response
+        ...
+```
+
+---
+
+## Agents page template integration
+
+The Deep Agent node integrates with the agents page manager framework as a pre-configured agent template. This bridges the flow designer (where users build custom agent graphs) with the agents page (where users manage reusable agent definitions).
+
+### Agent template system design
+
+#### Template definitions
+
+Extend `constants.ts` with agent template presets that map to pre-configured `config` values on the Agent database model:
+
+```typescript
+// src/frontend/src/pages/AgentsPage/components/constants.ts
+
+export const AGENT_TEMPLATES = [
+  {
+    id: "deep_agent_research",
+    name: "Research Agent",
+    description: "Plans research tasks, searches multiple sources, and synthesizes findings into structured reports.",
+    agent_type: "deep_agent",
+    config: {
+      enable_planning: true,
+      enable_context_tools: true,
+      enable_sub_agents: true,
+      enable_summarization: true,
+      max_iterations: 30,
+      system_prompt: "You are a research assistant. Break complex research into subtasks, search thoroughly, and synthesize findings into clear reports.",
+    },
+    tools: [],
+    tags: ["research", "planning"],
+    icon: "Search",
+  },
+  {
+    id: "deep_agent_coding",
+    name: "Coding Assistant",
+    description: "Plans implementation tasks, writes and reviews code, and manages context across files.",
+    agent_type: "deep_agent",
+    config: {
+      enable_planning: true,
+      enable_context_tools: true,
+      enable_sub_agents: false,
+      enable_summarization: true,
+      max_iterations: 25,
+      system_prompt: "You are a coding assistant. Plan implementation carefully, write clean code, and verify your work.",
+    },
+    tools: [],
+    tags: ["coding", "development"],
+    icon: "Code",
+  },
+  {
+    id: "deep_agent_data",
+    name: "Data Analysis Agent",
+    description: "Analyzes data, generates insights, and creates structured summaries with intermediate result tracking.",
+    agent_type: "deep_agent",
+    config: {
+      enable_planning: true,
+      enable_context_tools: true,
+      enable_sub_agents: false,
+      enable_summarization: false,
+      max_iterations: 20,
+      system_prompt: "You are a data analyst. Examine data carefully, track intermediate findings, and produce clear insights.",
+    },
+    tools: [],
+    tags: ["data", "analytics"],
+    icon: "BarChart",
+  },
+  {
+    id: "standard_agent",
+    name: "Standard Agent",
+    description: "Simple tool-calling agent without planning or context management. Best for straightforward tasks.",
+    agent_type: "tool_calling",
+    config: {
+      enable_planning: false,
+      enable_context_tools: false,
+      enable_sub_agents: false,
+      enable_summarization: false,
+      max_iterations: 15,
+    },
+    tools: [],
+    tags: ["simple", "tool-calling"],
+    icon: "Bot",
+  },
+];
+```
+
+#### Updated CreateAgentDialog
+
+The Create Agent dialog adds a template selection step before the configuration form:
+
+```
+┌──────────────────────────────────────────────────┐
+│  Create Agent                                     │
+│                                                   │
+│  Choose a template                                │
+│  ┌─────────────┐ ┌─────────────┐ ┌────────────┐ │
+│  │ 🔍 Research │ │ 💻 Coding   │ │ 📊 Data    │ │
+│  │ Agent       │ │ Assistant   │ │ Analysis   │ │
+│  │             │ │             │ │            │ │
+│  │ Plans tasks,│ │ Plans impl, │ │ Analyzes   │ │
+│  │ researches, │ │ writes code │ │ data, gen  │ │
+│  │ synthesizes │ │ reviews     │ │ insights   │ │
+│  └─────────────┘ └─────────────┘ └────────────┘ │
+│  ┌─────────────┐ ┌─────────────┐                 │
+│  │ 🤖 Standard │ │ ✨ Custom   │                 │
+│  │ Agent       │ │             │                 │
+│  │             │ │ Start from  │                 │
+│  │ Simple tool │ │ scratch     │                 │
+│  │ calling     │ │             │                 │
+│  └─────────────┘ └─────────────┘                 │
+│                                                   │
+│  ─── Configuration ───                            │
+│  Name *:        [My Research Agent          ]     │
+│  Description:   [Describe what this agent...]     │
+│                                                   │
+│  ─── Capabilities ───                             │
+│  Planning:        [✓]                             │
+│  Context Tools:   [✓]                             │
+│  Sub-Agents:      [✓]                             │
+│  Summarization:   [✓]                             │
+│                                                   │
+│  ─── Tools ───                                    │
+│  [SharePoint Files Loader] [+ Add Tool]           │
+│                                                   │
+│            [Cancel]  [Create Agent]               │
+└──────────────────────────────────────────────────┘
+```
+
+#### "Open in Flow Designer" action
+
+Each agent in the agents page gets an "Open in Flow Designer" button that:
+
+1. Creates a new flow with a pre-configured `DeepAgentComponent` node
+2. Populates the node's inputs from the agent's `config` JSON
+3. Links the agent record to the flow via `flow_id` foreign key
+4. Opens the flow in the flow designer for further customization
+
+This bridges the manager view (agents page) with the builder view (flow designer).
+
+#### AgentCard enhancements
+
+The `AgentCard` component is extended to show capability badges:
+
+```
+┌──────────────────────────────────────────────┐
+│  Research Agent                    deep_agent │
+│  Plans research tasks, searches multiple...  │
+│                                              │
+│  [Planning ✓] [Context ✓] [Sub-agents ✓]    │
+│  [SharePoint Files Loader]                   │
+│  [research] [planning]                       │
+│                                              │
+│  Edit  Open in Designer  Delete              │
+└──────────────────────────────────────────────┘
+```
+
+### Agent `config` schema
+
+The Agent model's `config: dict` field stores Deep Agent capability settings. The schema is:
+
+```python
+# Stored in Agent.config JSON column
+{
+    "enable_planning": bool,          # Default: True
+    "enable_context_tools": bool,     # Default: True
+    "enable_sub_agents": bool,        # Default: False
+    "enable_summarization": bool,     # Default: False
+    "max_iterations": int,            # Default: 25
+    "max_context_tokens": int,        # Default: 100000
+    "summarization_keep_recent": int, # Default: 10
+    "sub_agent_max_depth": int,       # Default: 2
+    "sub_agent_max_iterations": int,  # Default: 15
+    "system_prompt": str,             # Default: DEEP_AGENT_PROMPT
+}
+```
+
+When a user creates an agent from a template, the template's `config` is stored in the Agent record. When the agent is opened in the flow designer, these config values are mapped to the `DeepAgentComponent` node's input fields.
+
+### Data flow: agents page → flow designer → execution
+
+```
+Agent Template Selection (agents page)
+        │
+        ▼
+Agent Record Created (database: Agent model with config JSON)
+        │
+        ▼
+"Open in Flow Designer" clicked
+        │
+        ▼
+New Flow Created with DeepAgentComponent node
+  - Node inputs populated from Agent.config
+  - Agent.flow_id linked to new Flow
+        │
+        ▼
+User customizes in Flow Designer
+  - Add external tools (search, API, etc.)
+  - Adjust capability toggles
+  - Edit system prompt
+  - Connect to other flow nodes
+        │
+        ▼
+Flow Execution (run_graph_internal → orchestrator → Graph._run)
+  - DeepAgentComponent vertex executes
+  - Built-in tools injected based on toggles
+  - AgentExecutor runs with enhanced tool set
+  - Events streamed to playground UI
+```
+
+### Key design decisions
+
+1. **Single node, not multiple nodes**: All Deep Agent capabilities are exposed as toggles on one node rather than separate component nodes. This matches how Deep Agents' `create_deep_agent()` assembles everything through a single factory with middleware parameters.
+
+2. **Config-driven templates**: Agent templates are just pre-filled `config` values, not separate component classes. This keeps the component catalog clean and allows templates to be added without code changes.
+
+3. **Backward compatible**: The existing `AgentComponent` ("Agent") remains unchanged. `DeepAgentComponent` ("Deep Agent") is a new, separate component in the same `agents` category. Users can use either.
+
+4. **Progressive disclosure**: Capability toggles are visible by default for discoverability, but detailed configuration (token thresholds, depth limits) is hidden under `advanced=True`. Fields dynamically appear when their parent toggle is enabled via `real_time_refresh`.
+
+5. **Database-backed context**: Unlike Deep Agents' virtual filesystem, Langflow's context tools use the existing database infrastructure. This avoids introducing new storage dependencies and works with the existing persistence layer.
+
+---
+
 ## References
 
 - [LangChain Deep Agents Repository](https://github.com/langchain-ai/deepagents)
