@@ -10,10 +10,12 @@ import { JSIcon } from "@/icons/JSicon";
 import { LangwatchIcon } from "@/icons/Langwatch";
 import { MilvusIcon } from "@/icons/Milvus";
 import { OneDriveIcon } from "@/icons/OneDrive";
+import { OutlookIcon } from "@/icons/Outlook";
 import Perplexity from "@/icons/Perplexity/Perplexity";
 import { SearchAPIIcon } from "@/icons/SearchAPI";
 import { SerpSearchIcon } from "@/icons/SerpSearch";
 import { TavilyIcon } from "@/icons/Tavily";
+import { TeamsIcon } from "@/icons/Teams";
 import { UnstructuredIcon } from "@/icons/Unstructured";
 import { WikipediaIcon } from "@/icons/Wikipedia";
 import YouTubeIcon from "@/icons/Youtube/youtube";
@@ -564,6 +566,8 @@ export const SIDEBAR_CATEGORIES = [
 
 export const SIDEBAR_BUNDLES = [
   { display_name: "Confluence", name: "confluence", icon: "Confluence" },
+  { display_name: "Microsoft Outlook", name: "microsoft_outlook", icon: "Outlook" },
+  { display_name: "Microsoft Teams", name: "microsoft_teams", icon: "Teams" },
   { display_name: "SharePoint", name: "sharepoint", icon: "SharePoint" },
 ];
 
@@ -817,7 +821,9 @@ export const nodeIconsLucide: iconsType = {
   SlidersHorizontal,
   GoogleDrive: GoogleDriveIcon,
   OneDrive: OneDriveIcon,
+  Outlook: OutlookIcon,
   SharePoint: OneDriveIcon,
+  Teams: TeamsIcon,
   Dropbox: DropboxIcon,
   Palette,
   RefreshCcwDot,
