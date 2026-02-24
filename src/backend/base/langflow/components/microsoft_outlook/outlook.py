@@ -1,15 +1,22 @@
 import httpx
 
+from langflow.components.microsoft_templates.registry import (
+    get_outlook_template_names,
+    get_template,
+    render_template,
+)
 from langflow.custom import Component
 from langflow.io import BoolInput, DropdownInput, MultilineInput, Output, SecretStrInput, StrInput
 from langflow.schema import Data
+from langflow.schema.content_block import ContentBlock
+from langflow.schema.content_types import CodeContent, TextContent
 
 
 class OutlookSendEmailComponent(Component):
     display_name = "Microsoft Outlook"
     description = (
         "Send emails and report notifications via Microsoft Outlook using Microsoft Graph. "
-        "Supports automated report delivery and human-in-the-loop approval workflows."
+        "Supports automated report delivery, selectable templates, and human-in-the-loop approval workflows."
     )
     documentation = "https://learn.microsoft.com/graph/api/user-sendmail"
     icon = "Outlook"
@@ -36,7 +43,7 @@ class OutlookSendEmailComponent(Component):
             name="body",
             display_name="Body",
             required=True,
-            info="Email body content. Supports plain text or HTML.",
+            info="Email body content. Supports plain text or HTML. Ignored when a template is selected.",
         ),
         DropdownInput(
             name="body_content_type",
@@ -44,6 +51,23 @@ class OutlookSendEmailComponent(Component):
             options=["Text", "HTML"],
             value="HTML",
             required=True,
+        ),
+        DropdownInput(
+            name="template_name",
+            display_name="Template",
+            options=["None", *get_outlook_template_names()],
+            value="None",
+            required=False,
+            info="Select a pre-designed email template. Field values are taken from the Field Mapping input.",
+        ),
+        MultilineInput(
+            name="field_mapping",
+            display_name="Field Mapping",
+            required=False,
+            info=(
+                "Map structured data to template fields as key:value pairs, one per line. "
+                "Example:\ntitle: Weekly Report\nsummary: Revenue up 12%\nmetrics: ARR $5M, MRR $420K"
+            ),
         ),
         BoolInput(
             name="require_approval",
@@ -73,19 +97,23 @@ class OutlookSendEmailComponent(Component):
 
     def send_email(self) -> Data:
         try:
+            rendered_body = self._resolve_body()
+
             with httpx.Client(timeout=20) as client:
                 token = self._get_access_token(client)
                 headers = {
                     "Authorization": f"Bearer {token}",
                     "Content-Type": "application/json",
                 }
-                message_payload = self._build_message_payload()
+                message_payload = self._build_message_payload(rendered_body)
 
                 if self.require_approval:
                     result = self._create_draft(client, headers=headers, payload=message_payload)
                 else:
                     result = self._send_mail(client, headers=headers, payload=message_payload)
 
+                result.data["template"] = self.template_name if self.template_name != "None" else None
+                result.data["content_blocks"] = self._build_content_blocks(rendered_body, result)
                 self.status = result
                 return result
         except (httpx.HTTPError, ValueError) as exc:
@@ -112,17 +140,18 @@ class OutlookSendEmailComponent(Component):
             msg = "Unable to authenticate with Microsoft. Verify tenant and client credentials."
             raise ValueError(msg) from exc
 
-    def _build_message_payload(self) -> dict:
+    def _build_message_payload(self, body_content: str) -> dict:
         to_recipients = [
             {"emailAddress": {"address": addr.strip()}}
             for addr in self.recipient_emails.split(",")
             if addr.strip()
         ]
+        content_type = "HTML" if (self.template_name and self.template_name != "None") else self.body_content_type
         message: dict = {
             "subject": self.subject,
             "body": {
-                "contentType": self.body_content_type,
-                "content": self.body,
+                "contentType": content_type,
+                "content": body_content,
             },
             "toRecipients": to_recipients,
             "importance": self.importance or "normal",
@@ -181,3 +210,64 @@ class OutlookSendEmailComponent(Component):
         except httpx.HTTPError as exc:
             msg = "Unable to create draft email in Outlook."
             raise ValueError(msg) from exc
+
+    # ------------------------------------------------------------------
+    # Template helpers
+    # ------------------------------------------------------------------
+
+    def _resolve_body(self) -> str:
+        """Return the email body — either rendered from a template or raw."""
+        if self.template_name and self.template_name != "None":
+            values = self._parse_field_mapping()
+            return render_template(self.template_name, values)
+        return self.body
+
+    @staticmethod
+    def _parse_field_mapping_str(raw: str | None) -> dict[str, str]:
+        """Parse ``key: value`` lines into a dict."""
+        mapping: dict[str, str] = {}
+        if not raw:
+            return mapping
+        for line in raw.splitlines():
+            line = line.strip()
+            if ":" in line:
+                key, value = line.split(":", 1)
+                mapping[key.strip()] = value.strip()
+        return mapping
+
+    def _parse_field_mapping(self) -> dict[str, str]:
+        return self._parse_field_mapping_str(self.field_mapping)
+
+    @staticmethod
+    def _build_content_blocks(rendered_body: str, result: Data) -> list[dict]:
+        """Build ContentBlock dicts for rich playground preview."""
+        blocks: list[dict] = []
+        tpl_name = result.data.get("template")
+        status = result.data.get("status", "")
+
+        # Header block
+        header_text = (
+            f"✅ Email {result.data.get('action', '')} — {status}"
+            if status == "sent"
+            else f"📝 Draft created — awaiting human review"
+        )
+        header_block = ContentBlock(
+            title="Outlook",
+            contents=[TextContent(text=header_text)],
+        )
+        blocks.append(header_block.model_dump())
+
+        # Template preview block
+        if tpl_name:
+            tpl = get_template(tpl_name)
+            tpl_desc = tpl["description"] if tpl else ""
+            preview_block = ContentBlock(
+                title=f"Template: {tpl_name}",
+                contents=[
+                    TextContent(text=tpl_desc),
+                    CodeContent(code=rendered_body, language="html", title="Rendered Content"),
+                ],
+            )
+            blocks.append(preview_block.model_dump())
+
+        return blocks
