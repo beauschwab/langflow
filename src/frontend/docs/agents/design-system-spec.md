@@ -6,9 +6,9 @@ This specification defines the current frontend design system in `src/frontend`,
 
 ## Source of truth
 
-- Theme and token declarations: `/home/runner/work/langflow/langflow/src/frontend/src/style/index.css`
-- Tailwind token bindings and scales: `/home/runner/work/langflow/langflow/src/frontend/tailwind.config.mjs`
-- Reusable Radix/CVA primitives: `/home/runner/work/langflow/langflow/src/frontend/src/components/ui`
+- Theme and token declarations: `src/frontend/src/style/index.css`
+- Tailwind token bindings and scales: `src/frontend/tailwind.config.mjs`
+- Reusable Radix/CVA primitives: `src/frontend/src/components/ui`
 
 ## Design principles
 

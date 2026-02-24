@@ -44,10 +44,10 @@ Use this skill when:
 ## Workflow
 
 1. Read the design specification:
-   - `/home/runner/work/langflow/langflow/src/frontend/docs/agents/design-system-spec.md`
+   - `src/frontend/docs/agents/design-system-spec.md`
 2. Verify token availability:
-   - `/home/runner/work/langflow/langflow/src/frontend/src/style/index.css`
-   - `/home/runner/work/langflow/langflow/src/frontend/tailwind.config.mjs`
+   - `src/frontend/src/style/index.css`
+   - `src/frontend/tailwind.config.mjs`
 3. Implement using existing `src/components/ui` primitives where possible.
 4. Validate with existing frontend checks (at minimum build; formatting check where practical).
 
