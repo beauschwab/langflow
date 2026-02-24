@@ -20,6 +20,7 @@ import {
   ENABLE_CUSTOM_PARAM,
   ENABLE_FILE_MANAGEMENT,
 } from "@/customization/feature-flags";
+import { useCustomNavigate } from "@/customization/hooks/use-custom-navigate";
 import { track } from "@/customization/utils/analytics";
 import { createFileUpload } from "@/helpers/create-file-upload";
 import { getObjectsFromFilelist } from "@/helpers/get-objects-from-filelist";
@@ -52,6 +53,10 @@ const SideBarFoldersButtonsComponent = ({
 }: SideBarFoldersButtonsComponentProps) => {
   const location = useLocation();
   const pathname = location.pathname;
+  const navigate = useCustomNavigate();
+  const isAgentsSection = pathname.includes("/agents");
+  const isStoreSection = pathname.includes("/store");
+  const isFlowsSection = !isAgentsSection && !isStoreSection;
   const folders = useFolderStore((state) => state.folders);
   const loading = !folders;
   const refInput = useRef<HTMLInputElement>(null);
@@ -349,15 +354,57 @@ const SideBarFoldersButtonsComponent = ({
       data-testid="folder-sidebar"
     >
       <SidebarHeader className="p-4">
-        <HeaderButtons
-          handleUploadFlowsToFolder={handleUploadFlowsToFolder}
-          isUpdatingFolder={isUpdatingFolder}
-          isPending={isPending}
-          addNewFolder={addNewFolder}
-        />
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              size="md"
+              isActive={isFlowsSection}
+              onClick={() => navigate("/all")}
+              data-testid="sidebar-nav-flows-section"
+              className="text-[13px]"
+            >
+              <ForwardedIconComponent name="Home" className="h-4 w-4" />
+              My Flows
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              size="md"
+              isActive={isAgentsSection}
+              onClick={() => navigate("/agents")}
+              data-testid="sidebar-nav-agents-section"
+              className="text-[13px]"
+            >
+              <ForwardedIconComponent name="Bot" className="h-4 w-4" />
+              Agents
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              size="md"
+              isActive={isStoreSection}
+              onClick={() => navigate("/store")}
+              data-testid="sidebar-nav-store-section"
+              className="text-[13px]"
+            >
+              <ForwardedIconComponent name="Store" className="h-4 w-4" />
+              Store
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup className="p-4 py-2">
+        {isFlowsSection && (
+          <>
+            <div className="px-4 pt-2">
+              <HeaderButtons
+                handleUploadFlowsToFolder={handleUploadFlowsToFolder}
+                isUpdatingFolder={isUpdatingFolder}
+                isPending={isPending}
+                addNewFolder={addNewFolder}
+              />
+            </div>
+            <SidebarGroup className="p-4 py-2">
           <SidebarGroupContent>
             <SidebarMenu>
               {!loading ? (
@@ -444,8 +491,10 @@ const SideBarFoldersButtonsComponent = ({
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+          </>
+        )}
       </SidebarContent>
-      {ENABLE_FILE_MANAGEMENT && (
+      {isFlowsSection && ENABLE_FILE_MANAGEMENT && (
         <SidebarFooter className="border-t">
           <div className="flex w-full items-center gap-2 p-2">
             <SidebarMenuButton

@@ -111,6 +111,23 @@ const router = createBrowserRouter(
                       element={<HomePage key="flows" type="flows" />}
                     />
                   </Route>
+                  <Route path="agents" element={<AgentsPage />} />
+                  <Route
+                    path="store"
+                    element={
+                      <StoreGuard>
+                        <StorePage />
+                      </StoreGuard>
+                    }
+                  />
+                  <Route
+                    path="store/:id/"
+                    element={
+                      <StoreGuard>
+                        <StorePage />
+                      </StoreGuard>
+                    }
+                  />
                 </Route>
                 <Route path="settings" element={<SettingsPage />}>
                   <Route
@@ -134,23 +151,6 @@ const router = createBrowserRouter(
                   <Route path="messages" element={<MessagesPage />} />
                   <Route path="store" element={<StoreApiKeyPage />} />
                 </Route>
-                <Route path="agents" element={<AgentsPage />} />
-                <Route
-                  path="store"
-                  element={
-                    <StoreGuard>
-                      <StorePage />
-                    </StoreGuard>
-                  }
-                />
-                <Route
-                  path="store/:id/"
-                  element={
-                    <StoreGuard>
-                      <StorePage />
-                    </StoreGuard>
-                  }
-                />
                 <Route path="account">
                   <Route path="delete" element={<DeleteAccountPage />}></Route>
                 </Route>
