@@ -1,4 +1,4 @@
-# Langflow to Neva flow: remaining implementation plan
+# Langflow to Neva flow (Nevaflow): remaining implementation plan
 
 ## Objective
 Define a **step-by-step execution plan** for completing the project rename from Langflow/Lang flow to **Neva flow** across source code, folders, components, docs, and agent markdown content, without implementing the rename in this change.
@@ -41,6 +41,7 @@ Define a **step-by-step execution plan** for completing the project rename from 
    - Keep `langflow` imports/CLI aliases temporarily (deprecation window), or
    - Hard cut-over with migration guide and breaking-change release.
 4. **Case mapping rules** to standardize replacements:
+   - Use `Neva flow` in product-facing documentation headings and UI labels.
    - `Langflow` -> `Neva flow` (user-facing copy) or `Nevaflow` (class/type identifiers)
    - `langflow` -> `nevaflow` (module names, env vars only if intentionally renamed)
    - `LANGFLOW_*` -> either retain for compatibility, or rename to `NEVAFLOW_*` with alias support
