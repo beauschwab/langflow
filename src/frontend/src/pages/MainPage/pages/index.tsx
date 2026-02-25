@@ -8,7 +8,7 @@ import useFlowsManagerStore from "@/stores/flowsManagerStore";
 import { useFolderStore } from "@/stores/foldersStore";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import ModalsComponent from "../components/modalsComponent";
 import EmptyPage from "./emptyPage";
 
@@ -24,6 +24,9 @@ export default function CollectionPage(): JSX.Element {
   const folderToEdit = useFolderStore((state) => state.folderToEdit);
   const folders = useFolderStore((state) => state.folders);
   const queryClient = useQueryClient();
+  const location = useLocation();
+  const pathname = location.pathname;
+  const isNonFlowSection = pathname.includes("/agents");
 
   useEffect(() => {
     return () => queryClient.removeQueries({ queryKey: ["useGetFolder"] });
@@ -53,31 +56,40 @@ export default function CollectionPage(): JSX.Element {
     );
   };
 
+  const hasUserContent =
+    flows &&
+    examples &&
+    folders &&
+    (flows?.length !== examples?.length || folders?.length > 1);
+
   return (
     <SidebarProvider width="280px">
-      {flows &&
-        examples &&
-        folders &&
-        (flows?.length !== examples?.length || folders?.length > 1) && (
-          <SideBarFoldersButtonsComponent
-            handleChangeFolder={(id: string) => {
-              navigate(`all/folder/${id}`);
-            }}
-            handleDeleteFolder={(item) => {
-              setFolderToEdit(item);
-              setOpenDeleteFolderModal(true);
-            }}
-            handleFilesClick={() => {
-              navigate("files");
-            }}
-          />
-        )}
+      {(hasUserContent || isNonFlowSection) && (
+        <SideBarFoldersButtonsComponent
+          handleChangeFolder={(id: string) => {
+            navigate(`all/folder/${id}`);
+          }}
+          handleDeleteFolder={(item) => {
+            setFolderToEdit(item);
+            setOpenDeleteFolderModal(true);
+          }}
+          handleFilesClick={() => {
+            navigate("files");
+          }}
+        />
+      )}
       <main className="flex h-full w-full overflow-hidden">
-        {flows && examples && folders ? (
+        {isNonFlowSection ? (
           <div
             className={`relative mx-auto flex h-full w-full flex-col overflow-hidden`}
           >
-            {flows?.length !== examples?.length || folders?.length > 1 ? (
+            <Outlet />
+          </div>
+        ) : flows && examples && folders ? (
+          <div
+            className={`relative mx-auto flex h-full w-full flex-col overflow-hidden`}
+          >
+            {hasUserContent ? (
               <Outlet />
             ) : (
               <EmptyPage setOpenModal={setOpenModal} />

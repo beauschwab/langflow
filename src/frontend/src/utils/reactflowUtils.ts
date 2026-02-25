@@ -14,6 +14,7 @@ import {
 } from "@xyflow/react";
 import { cloneDeep } from "lodash";
 import ShortUniqueId from "short-unique-id";
+import { stringify as stringifyYaml } from "yaml";
 import getFieldTitle from "../CustomNodes/utils/get-field-title";
 import {
   INPUT_TYPES,
@@ -1784,6 +1785,7 @@ export function downloadFlow(
   flow: FlowType,
   flowName: string,
   flowDescription?: string,
+  fileFormat: "json" | "yaml" = "json",
 ) {
   try {
     const clonedFlow = cloneDeep(flow);
@@ -1799,12 +1801,17 @@ export function downloadFlow(
     console.log(flowData);
 
     const sortedData = sortJsonStructure(flowData);
-    const sortedJsonString = JSON.stringify(sortedData, null, 2);
-
-    const dataUri = `data:text/json;chatset=utf-8,${encodeURIComponent(sortedJsonString)}`;
+    const fileContent =
+      fileFormat === "yaml"
+        ? stringifyYaml(sortedData)
+        : JSON.stringify(sortedData, null, 2);
+    const mimeType =
+      fileFormat === "yaml" ? "application/yaml" : "application/json";
+    const fileExtension = fileFormat === "yaml" ? "yaml" : "json";
+    const dataUri = `data:${mimeType};charset=utf-8,${encodeURIComponent(fileContent)}`;
     const downloadLink = document.createElement("a");
     downloadLink.href = dataUri;
-    downloadLink.download = `${flowName || flow.name}.json`;
+    downloadLink.download = `${flowName || flow.name}.${fileExtension}`;
 
     downloadLink.click();
   } catch (error) {

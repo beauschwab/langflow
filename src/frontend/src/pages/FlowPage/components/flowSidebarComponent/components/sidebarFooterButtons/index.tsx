@@ -14,7 +14,7 @@ const SidebarMenuButtons = ({
       {hasStore && (
         <SidebarMenuButton asChild>
           <CustomLink
-            to="/store"
+            to="/agents"
             target="_blank"
             rel="noopener noreferrer"
             className="group/discover"
