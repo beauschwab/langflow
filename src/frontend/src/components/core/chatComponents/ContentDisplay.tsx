@@ -145,6 +145,154 @@ export default function ContentDisplay({
       break;
 
     case "tool_use":
+      // Deep agent tool-specific renderers
+      if (content.name === "write_todos" && content.output) {
+        // Parse todo list output into checklist items
+        const todoLines = String(content.output)
+          .split("\n")
+          .filter((line) => line.trim());
+        const hasTodoItems = todoLines.some(
+          (line) => line.includes("⬜") || line.includes("🔄") || line.includes("✅"),
+        );
+
+        if (hasTodoItems) {
+          contentData = (
+            <div className="flex flex-col gap-1">
+              {todoLines
+                .filter(
+                  (line) =>
+                    line.includes("⬜") ||
+                    line.includes("🔄") ||
+                    line.includes("✅"),
+                )
+                .map((line, i) => (
+                  <div key={i} className="flex items-center gap-2 text-[14px]">
+                    <span>{line.trim()}</span>
+                  </div>
+                ))}
+            </div>
+          );
+          break;
+        }
+      }
+
+      if (
+        (content.name === "write_context" ||
+          content.name === "read_context") &&
+        content.output
+      ) {
+        const isWrite = content.name === "write_context";
+        const contextKey =
+          content.tool_input?.key || (isWrite ? "unknown" : "unknown");
+        contentData = (
+          <div className="flex flex-col gap-1">
+            <span className="text-[14px] text-muted-foreground">
+              {isWrite ? "Key" : "Key"}: <strong>{contextKey}</strong>
+              {isWrite &&
+                content.tool_input?.value &&
+                ` · ${String(content.tool_input.value).length} chars`}
+            </span>
+            {content.output && (
+              <details className="mt-1">
+                <summary className="cursor-pointer text-[13px] text-muted-foreground hover:text-foreground">
+                  View value
+                </summary>
+                <div className="mt-1">
+                  <Markdown
+                    remarkPlugins={[remarkGfm]}
+                    rehypePlugins={[rehypeMathjax]}
+                    className="markdown prose max-w-full text-[14px] font-normal dark:prose-invert"
+                  >
+                    {String(content.output)}
+                  </Markdown>
+                </div>
+              </details>
+            )}
+          </div>
+        );
+        break;
+      }
+
+      if (content.name === "delegate_task") {
+        contentData = (
+          <div className="flex flex-col gap-2">
+            {content.tool_input?.task && (
+              <div className="text-[14px]">
+                <strong>Task:</strong> {String(content.tool_input.task)}
+              </div>
+            )}
+            {content.tool_input?.context && (
+              <details>
+                <summary className="cursor-pointer text-[13px] text-muted-foreground hover:text-foreground">
+                  Context provided
+                </summary>
+                <div className="mt-1 text-[14px] text-muted-foreground">
+                  {String(content.tool_input.context)}
+                </div>
+              </details>
+            )}
+            {content.output && (
+              <div className="mt-1 rounded-md border border-border bg-muted/50 p-3">
+                <div className="mb-1 text-[12px] font-medium text-muted-foreground">
+                  Sub-Agent Result
+                </div>
+                <Markdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeMathjax]}
+                  className="markdown prose max-w-full text-[14px] font-normal dark:prose-invert"
+                >
+                  {String(content.output)}
+                </Markdown>
+              </div>
+            )}
+            {content.error && (
+              <div className="text-red-500">
+                <strong>Error:</strong> {String(content.error)}
+              </div>
+            )}
+          </div>
+        );
+        break;
+      }
+
+      if (content.name === "summarize" && content.output) {
+        const inputLength = content.tool_input?.text
+          ? String(content.tool_input.text).length
+          : 0;
+        const outputLength = String(content.output).length;
+        const reduction =
+          inputLength > 0
+            ? Math.round((1 - outputLength / inputLength) * 100)
+            : 0;
+
+        contentData = (
+          <div className="flex flex-col gap-1">
+            {inputLength > 0 && (
+              <span className="text-[13px] text-muted-foreground">
+                {inputLength.toLocaleString()} chars → {outputLength.toLocaleString()} chars
+                {reduction > 0 && ` (${reduction}% reduction)`}
+              </span>
+            )}
+            <details className="mt-1">
+              <summary className="cursor-pointer text-[13px] text-muted-foreground hover:text-foreground">
+                View summary
+              </summary>
+              <div className="mt-1">
+                <Markdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeMathjax]}
+                  className="markdown prose max-w-full text-[14px] font-normal dark:prose-invert"
+                >
+                  {String(content.output)}
+                </Markdown>
+              </div>
+            </details>
+          </div>
+        );
+        break;
+      }
+
+      // Default: generic tool_use rendering
       const formatToolOutput = (output: any) => {
         if (output === null || output === undefined) return "";
 

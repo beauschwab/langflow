@@ -21,6 +21,7 @@ import ChatInput from "../chatInput/chat-input";
 import useDragAndDrop from "../chatInput/hooks/use-drag-and-drop";
 import { useFileHandler } from "../chatInput/hooks/use-file-handler";
 import ChatMessage from "../chatMessage/chat-message";
+import PromptSuggestions from "./prompt-suggestions";
 
 const MemoizedChatMessage = memo(ChatMessage, (prevProps, nextProps) => {
   return (
@@ -209,6 +210,9 @@ export default function ChatView({
                       </TextEffectPerChar>
                     </p>
                   </div>
+                  {inputTypes.includes("ChatInput") && (
+                    <PromptSuggestions />
+                  )}
                 </div>
               </div>
             </>
