@@ -2,8 +2,8 @@
 
 ## Scope and priorities
 - Preserve the existing Langflow UI and component/tool framework as the product surface.
-- Treat the Python backend graph/agent execution layer as the primary change surface.
-- Prefer incremental, backward-compatible changes that preserve API contracts.
+- Treat the Python backend graph/agent execution layer and frontend Flow UI and Agent Manager as the primary change surface.
+- Prefer incremental changes that preserve API contracts but this a greenfield project so DO NOT spend time on adding backward compatibility and fallback logic for changes 
 
 ## Current backend orchestration (authoritative paths)
 - API entry point: `langflow.processing.process.run_graph_internal(...)`.
