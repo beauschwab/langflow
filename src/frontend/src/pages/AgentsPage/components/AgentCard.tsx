@@ -20,6 +20,17 @@ export default function AgentCard({
   onEdit,
   onDelete,
 }: AgentCardProps): JSX.Element {
+  const skillBundleSettings =
+    agent.config &&
+    typeof agent.config === "object" &&
+    "skill_bundle_settings" in agent.config
+      ? (agent.config.skill_bundle_settings as {
+          curated_skills?: string[];
+          sub_flow_id?: string | null;
+        })
+      : null;
+  const skillCount = skillBundleSettings?.curated_skills?.length ?? 0;
+
   return (
     <Card
       className="group cursor-pointer hover:shadow-md"
@@ -52,6 +63,16 @@ export default function AgentCard({
               {tag}
             </Badge>
           ))}
+          {skillCount > 0 ? (
+            <Badge variant="outline" size="sm">
+              {`${skillCount} skill${skillCount !== 1 ? "s" : ""}`}
+            </Badge>
+          ) : null}
+          {skillBundleSettings?.sub_flow_id ? (
+            <Badge variant="outline" size="sm">
+              Sub-Flow linked
+            </Badge>
+          ) : null}
         </div>
       </CardContent>
       <CardFooter className="gap-2">

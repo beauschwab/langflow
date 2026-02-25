@@ -17,7 +17,8 @@ import { usePostAddAgent } from "@/controllers/API/queries/agents";
 import useAlertStore from "@/stores/alertStore";
 import { AgentCreateType } from "@/types/agents";
 import { useState } from "react";
-import { AVAILABLE_TOOLS } from "./constants";
+import { validate as isUuid } from "uuid";
+import { AVAILABLE_SKILLS, AVAILABLE_TOOLS } from "./constants";
 
 type CreateAgentDialogProps = {
   open: boolean;
@@ -32,6 +33,9 @@ export default function CreateAgentDialog({
   const [description, setDescription] = useState("");
   const [agentType, setAgentType] = useState("");
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
+  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const [subFlowId, setSubFlowId] = useState("");
+  const [subFlowIdError, setSubFlowIdError] = useState("");
   const setSuccessData = useAlertStore((state) => state.setSuccessData);
   const setErrorData = useAlertStore((state) => state.setErrorData);
 
@@ -43,11 +47,32 @@ export default function CreateAgentDialog({
       return;
     }
 
+    const trimmedSubFlowId = subFlowId.trim();
+    if (trimmedSubFlowId && !isUuid(trimmedSubFlowId)) {
+      setSubFlowIdError("Sub-Flow ID must be a valid UUID.");
+      setErrorData({ title: "Invalid Sub-Flow ID." });
+      return;
+    }
+
+    setSubFlowIdError("");
+    const skillBundleSettings =
+      selectedSkills.length > 0 || trimmedSubFlowId
+        ? {
+            mode: "skills_bundle",
+            curated_skills: selectedSkills,
+            sub_flow_id: trimmedSubFlowId || null,
+          }
+        : null;
+
     const payload: AgentCreateType = {
       name: name.trim(),
       description: description.trim() || null,
       agent_type: agentType.trim() || null,
+      config: skillBundleSettings
+        ? { skill_bundle_settings: skillBundleSettings }
+        : undefined,
       tools: selectedTools,
+      tags: skillBundleSettings ? ["skills"] : [],
     };
 
     createAgent(payload, {
@@ -57,6 +82,9 @@ export default function CreateAgentDialog({
         setDescription("");
         setAgentType("");
         setSelectedTools([]);
+        setSelectedSkills([]);
+        setSubFlowId("");
+        setSubFlowIdError("");
         onClose();
       },
       onError: (err: any) => {
@@ -107,7 +135,7 @@ export default function CreateAgentDialog({
             <Input
               id="agent-type"
               data-testid="agent-type-input"
-              placeholder="e.g., tool_calling, lc_agent"
+              placeholder="e.g., tool_calling, lc_agent, deep_agent"
               value={agentType}
               onChange={(e) => setAgentType(e.target.value)}
             />
@@ -147,6 +175,64 @@ export default function CreateAgentDialog({
                 );
               })}
             </div>
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium">
+              Skills (Agent Manager)
+            </label>
+            <div className="grid gap-2">
+              {AVAILABLE_SKILLS.map((skill) => {
+                const isSelected = selectedSkills.includes(skill.id);
+                return (
+                  <button
+                    key={skill.id}
+                    type="button"
+                    onClick={() =>
+                      setSelectedSkills((prev) =>
+                        prev.includes(skill.id)
+                          ? prev.filter((item) => item !== skill.id)
+                          : [...prev, skill.id],
+                      )
+                    }
+                    className="text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    data-testid={`skill-card-${skill.id}`}
+                    aria-label={`${isSelected ? "Deselect" : "Select"} ${skill.name} skill`}
+                    aria-pressed={isSelected}
+                  >
+                    <Card
+                      className={
+                        isSelected ? "border-primary bg-primary/5" : ""
+                      }
+                    >
+                      <CardHeader className="py-3">
+                        <CardTitle className="text-sm">{skill.name}</CardTitle>
+                        <CardDescription>{skill.description}</CardDescription>
+                      </CardHeader>
+                    </Card>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium" htmlFor="sub-flow-id">
+              Sub-Flow ID (Flow Editor advanced path)
+            </label>
+            <Input
+              id="sub-flow-id"
+              data-testid="agent-sub-flow-id-input"
+              placeholder="Optional: Flow ID for published Sub-Flow skill"
+              value={subFlowId}
+              onChange={(e) => {
+                setSubFlowId(e.target.value);
+                if (subFlowIdError) {
+                  setSubFlowIdError("");
+                }
+              }}
+            />
+            {subFlowIdError ? (
+              <p className="text-xs text-destructive">{subFlowIdError}</p>
+            ) : null}
           </div>
         </div>
         <DialogFooter>
