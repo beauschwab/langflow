@@ -144,6 +144,15 @@ module.exports = {
         "Integrations/Arize/integrations-arize",
         "Integrations/integrations-assemblyai",
         "Integrations/Composio/integrations-composio",
+        {
+          type: "category",
+          label: "DataHub",
+          items: [
+            "Integrations/DataHub/integrations-datahub",
+            "Integrations/DataHub/datahub-agent-metadata-enrichment",
+            "Integrations/DataHub/datahub-technical-reference",
+          ],
+        },
         "Integrations/integrations-langfuse",
         "Integrations/integrations-langsmith",
         "Integrations/integrations-langwatch",
