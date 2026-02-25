@@ -340,7 +340,7 @@ class DeepAgentComponent(LCToolsAgentComponent):
             sub_prompt = ChatPromptTemplate.from_messages([
                 ("system", "You are a focused sub-agent. Complete the assigned task using available tools."),
                 ("placeholder", "{chat_history}"),
-                ("human", f"Context: {context or 'None'}\n\nTask: {task}"),
+                ("human", "Context: {context}\n\nTask: {task}"),
                 ("placeholder", "{agent_scratchpad}"),
             ])
 
@@ -352,7 +352,11 @@ class DeepAgentComponent(LCToolsAgentComponent):
                 handle_parsing_errors=True,
             )
 
-            result = await sub_executor.ainvoke({"input": task})
+            result = await sub_executor.ainvoke({
+                "input": task,
+                "context": context or "None",
+                "task": task,
+            })
             return result.get("output", "Sub-agent completed without output.")
 
         return StructuredTool.from_function(
@@ -483,7 +487,7 @@ class DeepAgentComponent(LCToolsAgentComponent):
 
     async def get_memory_data(self):
         memory_kwargs = {
-            component_input.name: getattr(self, f"{component_input.name}") for component_input in self.memory_inputs
+            component_input.name: getattr(self, component_input.name) for component_input in self.memory_inputs
         }
         memory_kwargs = {k: v for k, v in memory_kwargs.items() if v}
         return await MemoryComponent(**self.get_base_args()).set(**memory_kwargs).retrieve_messages()

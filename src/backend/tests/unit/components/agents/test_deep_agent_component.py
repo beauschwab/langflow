@@ -135,7 +135,7 @@ class TestDeepAgentComponent(ComponentTestBaseWithoutClient):
         delegate_tool = component._build_delegate_task_tool(mock_llm, [], current_depth=2)
 
         # Should return depth limit message without executing
-        result = await delegate_tool.coroutine("test task")
+        result = await delegate_tool.coroutine(task="test task", context=None)
         assert "Cannot delegate" in result
         assert "maximum sub-agent depth" in result
 
