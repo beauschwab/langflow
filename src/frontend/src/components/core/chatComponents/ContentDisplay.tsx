@@ -255,6 +255,125 @@ export default function ContentDisplay({
         break;
       }
 
+      if (content.name === "load_skill") {
+        // Parse JSON output for skill loading
+        let skillData: {
+          skill_name?: string;
+          description?: string;
+          instructions?: string;
+          available_files?: string[];
+          error?: string;
+        } | null = null;
+        if (content.output && typeof content.output === "string") {
+          try {
+            skillData = JSON.parse(content.output);
+          } catch {
+            skillData = null;
+          }
+        }
+
+        contentData = (
+          <div className="flex flex-col gap-2">
+            {content.tool_input?.skill_name && (
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center rounded-md border border-border bg-muted/50 px-2 py-0.5 text-[13px] font-medium">
+                  {String(content.tool_input.skill_name)}
+                </span>
+              </div>
+            )}
+            {skillData?.error && (
+              <div className="text-[14px] text-red-500">
+                {skillData.error}
+              </div>
+            )}
+            {skillData?.description && (
+              <div className="text-[13px] text-muted-foreground">
+                {skillData.description}
+              </div>
+            )}
+            {skillData?.instructions && (
+              <details className="mt-1">
+                <summary className="cursor-pointer text-[13px] text-muted-foreground hover:text-foreground">
+                  View instructions ({skillData.instructions.length.toLocaleString()} chars)
+                </summary>
+                <div className="mt-1">
+                  <Markdown
+                    remarkPlugins={[remarkGfm]}
+                    rehypePlugins={[rehypeMathjax]}
+                    className="markdown prose max-w-full text-[14px] font-normal dark:prose-invert"
+                  >
+                    {skillData.instructions}
+                  </Markdown>
+                </div>
+              </details>
+            )}
+            {skillData?.available_files &&
+              skillData.available_files.length > 0 && (
+                <div className="text-[13px] text-muted-foreground">
+                  Supporting files: {skillData.available_files.join(", ")}
+                </div>
+              )}
+          </div>
+        );
+        break;
+      }
+
+      if (content.name === "read_skill_file") {
+        // Parse JSON output for skill file reading
+        let fileData: {
+          skill_name?: string;
+          filename?: string;
+          content?: string;
+          error?: string;
+        } | null = null;
+        if (content.output && typeof content.output === "string") {
+          try {
+            fileData = JSON.parse(content.output);
+          } catch {
+            fileData = null;
+          }
+        }
+
+        contentData = (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2 text-[14px]">
+              {content.tool_input?.skill_name && (
+                <span className="inline-flex items-center rounded-md border border-border bg-muted/50 px-2 py-0.5 text-[13px] font-medium">
+                  {String(content.tool_input.skill_name)}
+                </span>
+              )}
+              {content.tool_input?.filename && (
+                <span className="text-muted-foreground">
+                  / {String(content.tool_input.filename)}
+                </span>
+              )}
+            </div>
+            {fileData?.error && (
+              <div className="text-[14px] text-red-500">
+                {fileData.error}
+              </div>
+            )}
+            {fileData?.content && (
+              <details className="mt-1">
+                <summary className="cursor-pointer text-[13px] text-muted-foreground hover:text-foreground">
+                  View content ({fileData.content.length.toLocaleString()} chars)
+                </summary>
+                <div className="mt-1">
+                  <Markdown
+                    remarkPlugins={[remarkGfm]}
+                    rehypePlugins={[rehypeMathjax]}
+                    className="markdown prose max-w-full text-[14px] font-normal dark:prose-invert"
+                  >
+                    {fileData.content}
+                  </Markdown>
+                </div>
+              </details>
+            )}
+          </div>
+        );
+        break;
+      }
+
       if (content.name === "summarize" && content.output) {
         const inputLength = content.tool_input?.text
           ? String(content.tool_input.text).length

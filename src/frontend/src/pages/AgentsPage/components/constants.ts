@@ -18,4 +18,22 @@ export const AVAILABLE_SKILLS = [
     name: "Frontend Design System Compliance",
     description: "Design-system-safe frontend implementation guidance.",
   },
+  {
+    id: "data-analysis",
+    name: "Data Analysis",
+    description:
+      "Structured data analysis workflow for CSV, JSON, and database query results.",
+  },
+  {
+    id: "code-review",
+    name: "Code Review",
+    description:
+      "Systematic code review with quality checklists and best practices.",
+  },
+  {
+    id: "api-design",
+    name: "API Design",
+    description:
+      "RESTful API design patterns, versioning, and documentation standards.",
+  },
 ];
