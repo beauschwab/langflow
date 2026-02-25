@@ -12,6 +12,44 @@ from langflow.schema.content_types import TextContent, ToolContent
 from langflow.schema.log import SendMessageFunctionType
 from langflow.schema.message import Message
 
+# Deep agent tool display configuration — maps tool names to differentiated icons and titles
+DEEP_AGENT_TOOL_DISPLAY: dict[str, dict[str, str]] = {
+    "write_todos": {
+        "icon": "ListTodo",
+        "title_start": "Planning",
+        "title_end": "Plan updated",
+    },
+    "write_context": {
+        "icon": "Save",
+        "title_start": "Saving context",
+        "title_end": "Saved to memory",
+    },
+    "read_context": {
+        "icon": "BookOpen",
+        "title_start": "Reading context",
+        "title_end": "Retrieved from memory",
+    },
+    "delegate_task": {
+        "icon": "Users",
+        "title_start": "Delegating to sub-agent",
+        "title_end": "Sub-agent completed",
+    },
+    "summarize": {
+        "icon": "FileText",
+        "title_start": "Summarizing",
+        "title_end": "Summarized",
+    },
+}
+
+
+def _get_tool_display(tool_name: str) -> dict[str, str]:
+    """Return display metadata for a tool, falling back to generic Hammer icon."""
+    return DEEP_AGENT_TOOL_DISPLAY.get(tool_name, {
+        "icon": "Hammer",
+        "title_start": f"Accessing **{tool_name}**",
+        "title_end": f"Executed **{tool_name}**",
+    })
+
 
 class ExceptionWithMessageError(Exception):
     def __init__(self, agent_message: Message, message: str):
@@ -134,13 +172,14 @@ async def handle_on_tool_start(
     new_start_time = perf_counter()  # Get new start time for next operation
 
     # Create new tool content with the input exactly as received
+    display = _get_tool_display(tool_name)
     tool_content = ToolContent(
         type="tool_use",
         name=tool_name,
         input=tool_input,
         output=None,
         error=None,
-        header={"title": f"Accessing **{tool_name}**", "icon": "Hammer"},
+        header={"title": display["title_start"], "icon": display["icon"]},
         duration=duration,  # Store the actual duration
     )
 
@@ -170,7 +209,8 @@ async def handle_on_tool_end(
         tool_content.output = event["data"].get("output")
         duration = _calculate_duration(start_time)
         tool_content.duration = duration
-        tool_content.header = {"title": f"Executed **{tool_content.name}**", "icon": "Hammer"}
+        display = _get_tool_display(tool_content.name or tool_name)
+        tool_content.header = {"title": display["title_end"], "icon": display["icon"]}
 
         agent_message = await send_message_method(message=agent_message)
         new_start_time = perf_counter()  # Get new start time for next operation
@@ -193,7 +233,7 @@ async def handle_on_tool_error(
     if tool_content and isinstance(tool_content, ToolContent):
         tool_content.error = event["data"].get("error", "Unknown error")
         tool_content.duration = _calculate_duration(start_time)
-        tool_content.header = {"title": f"Error using **{tool_content.name}**", "icon": "Hammer"}
+        tool_content.header = {"title": f"Error using **{tool_content.name}**", "icon": "AlertCircle"}
         agent_message = await send_message_method(message=agent_message)
         start_time = perf_counter()
     return agent_message, start_time
