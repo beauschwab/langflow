@@ -57,10 +57,10 @@ export default function CreateAgentDialog({
     }
 
     setSubFlowIdError("");
-    const hybridSettings =
+    const skillBundleSettings =
       selectedSkills.length > 0 || trimmedSubFlowId
         ? {
-            skill_mode: "hybrid",
+            mode: "skills_bundle",
             curated_skills: selectedSkills,
             sub_flow_id: trimmedSubFlowId || null,
           }
@@ -70,9 +70,11 @@ export default function CreateAgentDialog({
       name: name.trim(),
       description: description.trim() || null,
       agent_type: agentType.trim() || null,
-      config: hybridSettings ? { hybrid_settings: hybridSettings } : undefined,
+      config: skillBundleSettings
+        ? { skill_bundle_settings: skillBundleSettings }
+        : undefined,
       tools: selectedTools,
-      tags: hybridSettings ? ["hybrid"] : [],
+      tags: skillBundleSettings ? ["skills"] : [],
     };
 
     createAgent(payload, {
@@ -178,7 +180,7 @@ export default function CreateAgentDialog({
           </div>
           <div className="flex flex-col gap-2">
             <label className="text-sm font-medium">
-              Hybrid Skills (Agent Manager)
+              Skills (Agent Manager)
             </label>
             <div className="grid gap-2">
               {AVAILABLE_SKILLS.map((skill) => {

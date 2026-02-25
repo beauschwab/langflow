@@ -18,6 +18,7 @@ Map the skills concept to the Langflow UI and the agent manager framework so use
 - Some skills include additional artifacts (for example, reference docs) when the skill requires richer operational guidance.
 
 ## Mapping skills to the UI and agent manager framework
+- **Terminology**: use **Skills bundle** as the user-facing term (instead of "hybrid skill") for a package that combines selected skills with an optional sub-flow link.
 - **Skill package**: reusable bundle that combines:
   - context assets (domain knowledge, prompt constraints, reference snippets),
   - tool access policy (allowed components/tools),

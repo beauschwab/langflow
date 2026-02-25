@@ -20,16 +20,17 @@ export default function AgentCard({
   onEdit,
   onDelete,
 }: AgentCardProps): JSX.Element {
-  const hybridSettings =
+  const skillBundleSettings =
     agent.config &&
     typeof agent.config === "object" &&
-    "hybrid_settings" in agent.config
-      ? (agent.config.hybrid_settings as {
+    ("skill_bundle_settings" in agent.config || "hybrid_settings" in agent.config)
+      ? ((agent.config.skill_bundle_settings ??
+          agent.config.hybrid_settings) as {
           curated_skills?: string[];
           sub_flow_id?: string | null;
         })
       : null;
-  const hybridSkillCount = hybridSettings?.curated_skills?.length ?? 0;
+  const skillCount = skillBundleSettings?.curated_skills?.length ?? 0;
 
   return (
     <Card
@@ -63,12 +64,12 @@ export default function AgentCard({
               {tag}
             </Badge>
           ))}
-          {hybridSkillCount > 0 ? (
+          {skillCount > 0 ? (
             <Badge variant="outline" size="sm">
-              {`${hybridSkillCount} skill${hybridSkillCount !== 1 ? "s" : ""}`}
+              {`${skillCount} skill${skillCount !== 1 ? "s" : ""}`}
             </Badge>
           ) : null}
-          {hybridSettings?.sub_flow_id ? (
+          {skillBundleSettings?.sub_flow_id ? (
             <Badge variant="outline" size="sm">
               Sub-Flow linked
             </Badge>
