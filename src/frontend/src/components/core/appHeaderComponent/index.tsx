@@ -139,15 +139,15 @@ export default function AppHeader(): JSX.Element {
         {!ENABLE_DATASTAX_LANGFLOW && (
           <>
             <ShadTooltip
-              content="Go to Langflow Store"
+              content="Go to Shared"
               side="bottom"
               styleClasses="z-10"
             >
               <Button
                 variant="ghost"
-                className={` ${lastPath === "store" ? "bg-accent text-accent-foreground" : ""} z-50`}
+                className={` ${lastPath === "agents" ? "bg-accent text-accent-foreground" : ""} z-50`}
                 onClick={() => {
-                  navigate("/store");
+                  navigate("/agents");
                 }}
                 data-testid="button-store"
               >
@@ -155,7 +155,7 @@ export default function AppHeader(): JSX.Element {
                   name="Store"
                   className="side-bar-button-size h-[18px] w-[18px]"
                 />
-                <span className="hidden whitespace-nowrap">Store</span>
+                <span className="hidden whitespace-nowrap">Shared</span>
               </Button>
             </ShadTooltip>
             <Separator
