@@ -20,6 +20,7 @@ const ExportModal = forwardRef(
     const version = useDarkStore((state) => state.version);
     const setNoticeData = useAlertStore((state) => state.setNoticeData);
     const [checked, setChecked] = useState(false);
+    const [exportAsYaml, setExportAsYaml] = useState(false);
     const currentFlow = useFlowStore((state) => state.currentFlow);
     const isBuilding = useFlowStore((state) => state.isBuilding);
     useEffect(() => {
@@ -51,6 +52,7 @@ const ExportModal = forwardRef(
               },
               name!,
               description,
+              exportAsYaml ? "yaml" : "json",
             );
             setNoticeData({
               title: API_WARNING_NOTICE_ALERT,
@@ -69,6 +71,7 @@ const ExportModal = forwardRef(
               }),
               name!,
               description,
+              exportAsYaml ? "yaml" : "json",
             );
           setOpen(false);
           track("Flow Exported", { flowId: currentFlow!.id });
@@ -100,6 +103,18 @@ const ExportModal = forwardRef(
             />
             <label htmlFor="terms" className="export-modal-save-api text-sm">
               {SAVE_WITH_API_CHECKBOX}
+            </label>
+          </div>
+          <div className="mt-3 flex items-center space-x-2">
+            <Checkbox
+              id="export-yaml"
+              checked={exportAsYaml}
+              onCheckedChange={(event: boolean) => {
+                setExportAsYaml(event);
+              }}
+            />
+            <label htmlFor="export-yaml" className="text-sm">
+              Export as YAML
             </label>
           </div>
           <span className="mt-1 text-xs text-destructive">

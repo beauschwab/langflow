@@ -504,7 +504,7 @@ async def test_upload_file(client: AsyncClient, json_flow: str, logged_in_header
             FlowCreate(name=flow_2_unique_name, description="description", data=data),
         ]
     )
-    file_contents = orjson_dumps(flow_list.dict())
+    file_contents = orjson_dumps(flow_list.model_dump(mode="json"))
     response = await client.post(
         "api/v1/flows/upload/",
         files={"file": ("examples.json", file_contents, "application/json")},
@@ -529,7 +529,7 @@ async def test_upload_yaml_file(client: AsyncClient, json_flow: str, logged_in_h
     data = flow["data"]
     flow_unique_name = str(uuid4())
     flow_list = FlowListCreate(flows=[FlowCreate(name=flow_unique_name, description="description", data=data)])
-    file_contents = yaml.safe_dump(flow_list.dict(), sort_keys=False).encode("utf-8")
+    file_contents = yaml.safe_dump(flow_list.model_dump(mode="json"), sort_keys=False).encode("utf-8")
     response = await client.post(
         "api/v1/flows/upload/",
         files={"file": ("examples.yaml", file_contents, "application/x-yaml")},
