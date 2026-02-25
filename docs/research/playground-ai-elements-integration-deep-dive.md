@@ -339,7 +339,275 @@ PromptInput (value, onValueChange)
 
 ---
 
-## 4. Implementation Roadmap
+## 4. Deep Agent Functionality — Process Step Analysis & AI Elements Mapping
+
+The Deep Agent (`DeepAgentComponent`) extends `LCToolsAgentComponent` with four capability toggles that each produce distinct process step types. This section maps every step type to its current rendering and proposes AI Elements component variations.
+
+### 4.1 Capability Overview
+
+| Capability | Toggle | Tool Name(s) | Content Type Emitted | Current Rendering |
+|-----------|--------|--------------|---------------------|-------------------|
+| **Planning** | `enable_planning` | `write_todos` | `tool_use` (generic) | JSON input/output in collapsible step |
+| **Context Tools** | `enable_context_tools` | `write_context`, `read_context` | `tool_use` (generic) | JSON input/output in collapsible step |
+| **Sub-Agents** | `enable_sub_agents` | `delegate_task` | `tool_use` (generic) | JSON input/output in collapsible step |
+| **Summarization** | `enable_summarization` | `summarize` | `tool_use` (generic) | JSON input/output in collapsible step |
+| **Thinking/Input** | always | (chain start) | `text` | Markdown "**Input**: ..." |
+| **Final Output** | always | (chain end) | `text` | Markdown output text |
+| **Memory** | always (via `MemoryComponent`) | — | Not displayed as step | Chat history injected into LLM context |
+
+### 4.2 Current Rendering Pipeline
+
+All deep agent process steps flow through the same pipeline:
+
+```
+DeepAgentComponent.message_response()
+  → LCToolsAgentComponent.run_agent()
+    → process_agent_events(runnable.astream_events())
+      → on_tool_start  → ToolContent(type="tool_use", name="write_todos", header="Accessing **write_todos**")
+      → on_tool_end    → ToolContent updated with output, header="Executed **write_todos**"
+      → on_chain_start → TextContent(type="text", header="Input")
+      → on_chain_end   → TextContent(type="text", header="Output") + state="complete"
+```
+
+**Key observation:** Every deep agent tool (planning, context, sub-agents, summarization) renders identically as a generic `tool_use` content type with a "Hammer" icon. There is **no visual distinction** between a planning step, a context save, a sub-agent delegation, or a summarization — they all appear as "Accessing **tool_name**" → "Executed **tool_name**" with raw JSON input/output.
+
+### 4.3 Gap Analysis — What's Missing
+
+| Process Step | What Users See Now | What Users Should See |
+|-------------|-------------------|----------------------|
+| **Planning (write_todos)** | `Hammer` icon, JSON `{todos: [{task, status}]}` | Checklist UI with ⬜/🔄/✅ status icons per task |
+| **Thinking (chain start)** | `MessageSquare` icon, "**Input**: user text" | Collapsible "Thinking..." section with reasoning trace |
+| **Context Write** | `Hammer` icon, JSON `{key, value}` | "Saved to memory" badge with key name |
+| **Context Read** | `Hammer` icon, JSON `{key}` | "Retrieved from memory" with key→value display |
+| **Sub-Agent Delegation** | `Hammer` icon, JSON `{task, context}` | Nested agent card showing sub-agent's task + result |
+| **Summarization** | `Hammer` icon, JSON `{text, max_length}` | "Condensed" indicator with before/after length |
+| **Memory** | Not visible | "Loaded N messages from history" indicator |
+| **Tool Errors** | `Hammer` icon, red JSON error | Error banner with retry suggestion |
+
+### 4.4 Proposed AI Elements Component Mapping
+
+#### 4.4.1 Planning Steps → `<Reasoning>` with Checklist
+
+The `write_todos` tool output contains a structured todo list with status icons (⬜/🔄/✅). This maps perfectly to AI Elements' `<Reasoning>` component pattern — a collapsible section showing the agent's structured thinking.
+
+**Current rendering (generic tool_use):**
+```
+┌─ 🔨 Accessing write_todos ─────────────┐
+│ Input: {"todos": [{"task": "...", ...}]} │
+│ Output: "Todo List:\n⬜ Step 1\n..."     │
+└──────────────────────────────────────────┘
+```
+
+**Proposed rendering (checklist variation):**
+```
+┌─ 📋 Planning ──────────────────────────┐
+│ ⬜ Research available APIs              │
+│ 🔄 Parse the input data                │
+│ ✅ Set up the project structure         │
+│ ⬜ Write the final report              │
+└─────────────────────────────────────────┘
+```
+
+**Implementation:** Detect `tool_name === "write_todos"` in `ContentDisplay.tsx` and render a parsed checklist instead of raw JSON. The output string from `write_todos` already contains emoji status markers (⬜/🔄/✅) that can be parsed into a structured checklist view.
+
+**AI Elements parallel:** `<Reasoning>` → `<ReasoningTrigger>Planning</ReasoningTrigger>` → `<ReasoningContent>` with checklist items.
+
+#### 4.4.2 Thinking/Chain Steps → `<Reasoning>` with Collapsible Trace
+
+Chain start events emit a `TextContent` with "**Input**: ..." — this is the agent's initial processing of the user request. This maps to AI Elements' `<Reasoning>` component for showing chain-of-thought.
+
+**Current rendering:**
+```
+┌─ 💬 Input ─────────────────────────────┐
+│ **Input**: What is the weather today?   │
+└─────────────────────────────────────────┘
+```
+
+**Proposed rendering:**
+```
+┌─ 🧠 Thinking ──────────────────────────┐
+│ ▸ View reasoning (click to expand)      │
+│   "I need to check the weather. I'll    │
+│    use the search tool to find current  │
+│    conditions..."                       │
+└─────────────────────────────────────────┘
+```
+
+**AI Elements parallel:** `<Reasoning>` → `<ReasoningTrigger>View reasoning</ReasoningTrigger>` → `<ReasoningContent>{step.text}</ReasoningContent>`
+
+#### 4.4.3 Context Tools → `<Message>` with Memory Badge
+
+Context read/write operations are memory operations. They should render as compact status indicators rather than verbose JSON dumps.
+
+**Current rendering:**
+```
+┌─ 🔨 Accessing write_context ───────────┐
+│ Input: {"key": "results", "value": ...} │
+│ Output: "Saved context 'results' (245   │
+│          chars)."                        │
+└──────────────────────────────────────────┘
+```
+
+**Proposed rendering:**
+```
+┌─ 💾 Saved to memory ───────────────────┐
+│ Key: results  •  245 chars              │
+│ ▸ View value (click to expand)          │
+└─────────────────────────────────────────┘
+
+┌─ 📖 Retrieved from memory ─────────────┐
+│ Key: results                            │
+│ ▸ View value (click to expand)          │
+└─────────────────────────────────────────┘
+```
+
+**AI Elements parallel:** Compact `<Message from="system">` with badge styling — no direct AI Elements equivalent, but follows the pattern of system-level status messages.
+
+#### 4.4.4 Sub-Agent Delegation → Nested `<Message>` with Agent Card
+
+Sub-agent delegation creates an isolated child agent. This should render as a visually distinct nested section showing the sub-task and its result.
+
+**Current rendering:**
+```
+┌─ 🔨 Accessing delegate_task ───────────┐
+│ Input: {"task": "Search for...",        │
+│         "context": "..."}               │
+│ Output: "Sub-agent completed: ..."      │
+└──────────────────────────────────────────┘
+```
+
+**Proposed rendering:**
+```
+┌─ 🤖 Delegated to Sub-Agent ────────────┐
+│ Task: "Search for recent papers on..."  │
+│ ┌─ Sub-Agent Result ──────────────────┐ │
+│ │ Found 3 relevant papers:            │ │
+│ │ 1. "Paper A" (2024)                 │ │
+│ │ 2. "Paper B" (2023)                 │ │
+│ └─────────────────────────────────────┘ │
+│ ⏱ 3.2s                                 │
+└──────────────────────────────────────────┘
+```
+
+**AI Elements parallel:** `<Message from="assistant">` nested within the parent message's content block, styled with distinct border/background to show agent hierarchy.
+
+#### 4.4.5 Summarization → Compact `<CodeBlock>` Diff View
+
+Summarization condenses long text. The UI should show the compression ratio and allow viewing the summary.
+
+**Current rendering:**
+```
+┌─ 🔨 Accessing summarize ──────────────┐
+│ Input: {"text": "...(very long)...",    │
+│         "max_length": 500}              │
+│ Output: "Condensed summary text..."     │
+└──────────────────────────────────────────┘
+```
+
+**Proposed rendering:**
+```
+┌─ 📝 Summarized ────────────────────────┐
+│ 2,450 chars → 480 chars (80% reduction) │
+│ ▸ View summary (click to expand)        │
+└──────────────────────────────────────────┘
+```
+
+**AI Elements parallel:** `<CodeBlock>` with language="markdown" for the summary content, wrapped in a compact disclosure.
+
+#### 4.4.6 Memory (Chat History) → Status Indicator
+
+Memory loading via `MemoryComponent` happens before the agent runs and is not currently visible in the chat. A brief indicator would improve transparency.
+
+**Proposed rendering:**
+```
+┌─ 🧠 Memory ────────────────────────────┐
+│ Loaded 12 messages from chat history    │
+└──────────────────────────────────────────┘
+```
+
+**Implementation:** Add a `TextContent` step at the beginning of `run_agent()` when `chat_history` is non-empty, showing the count of loaded messages.
+
+#### 4.4.7 Tool Errors → Error Banner with Context
+
+Tool errors currently render with raw JSON. They should show a clear error message with the failed tool name and a hint about what went wrong.
+
+**Current rendering:**
+```
+┌─ 🔨 Error using write_todos ───────────┐
+│ Error: {"message": "Invalid input..."}  │
+└──────────────────────────────────────────┘
+```
+
+**Proposed rendering:**
+```
+┌─ ❌ write_todos failed ────────────────┐
+│ Invalid input: 'status' must be one of  │
+│ pending, in_progress, done              │
+│ ⏱ 0.1s                                 │
+└──────────────────────────────────────────┘
+```
+
+### 4.5 Implementation Strategy
+
+The proposed changes follow two tracks:
+
+#### Track A: Backend — Differentiated Headers & Icons (Low Effort)
+
+Update `events.py` to emit tool-specific icons and header titles based on tool name:
+
+```python
+# Proposed icon/header mapping for deep agent tools
+DEEP_AGENT_TOOL_DISPLAY = {
+    "write_todos":   {"icon": "ListTodo",   "title_start": "Planning",       "title_end": "Plan updated"},
+    "write_context": {"icon": "Save",       "title_start": "Saving context", "title_end": "Saved to memory"},
+    "read_context":  {"icon": "BookOpen",   "title_start": "Reading context","title_end": "Retrieved from memory"},
+    "delegate_task": {"icon": "Users",      "title_start": "Delegating",     "title_end": "Sub-agent completed"},
+    "summarize":     {"icon": "FileText",   "title_start": "Summarizing",    "title_end": "Summarized"},
+}
+```
+
+This requires changes only to `handle_on_tool_start` and `handle_on_tool_end` in `events.py` — replacing the hardcoded `"Hammer"` icon with a lookup.
+
+#### Track B: Frontend — Tool-Specific Renderers (Medium Effort)
+
+Add tool-name-aware rendering in `ContentDisplay.tsx` for the `tool_use` case:
+
+```typescript
+case "tool_use":
+  // Deep agent tool-specific renderers
+  if (content.name === "write_todos") {
+    return <TodoListDisplay content={content} />;
+  }
+  if (content.name === "write_context" || content.name === "read_context") {
+    return <ContextToolDisplay content={content} />;
+  }
+  if (content.name === "delegate_task") {
+    return <SubAgentDisplay content={content} />;
+  }
+  if (content.name === "summarize") {
+    return <SummarizeDisplay content={content} />;
+  }
+  // Default: generic tool_use rendering
+  ...
+```
+
+### 4.6 AI Elements Component Summary Table
+
+| Deep Agent Step | AI Elements Component | Proposed Icon | Key Visual Change |
+|----------------|----------------------|---------------|-------------------|
+| Planning (write_todos) | `<Reasoning>` with checklist | `ListTodo` | Parsed todo items with status emojis |
+| Thinking (chain start) | `<Reasoning>` collapsible | `Brain` | "Thinking..." with expandable reasoning |
+| Context Write | Compact `<Message>` badge | `Save` | "Saved to memory" one-liner |
+| Context Read | Compact `<Message>` badge | `BookOpen` | "Retrieved from memory" one-liner |
+| Sub-Agent | Nested `<Message>` card | `Users` | Indented sub-agent task + result |
+| Summarization | `<CodeBlock>` disclosure | `FileText` | Compression ratio + expandable summary |
+| Memory Load | Status indicator | `Brain` | "Loaded N messages" system message |
+| Tool Error | Error `<Message>` | `AlertCircle` | Clear error text instead of raw JSON |
+| Final Output | `<MessageResponse>` | `MessageSquare` | Standard markdown response |
+
+---
+
+## 5. Implementation Roadmap
 
 ### Phase 1: Quick Wins (No New Dependencies)
 
@@ -348,6 +616,7 @@ These improvements use existing libraries and patterns:
 1. **Enhanced empty chat state** with suggested prompt chips
 2. **Improved streaming dots** animation using existing Framer Motion
 3. **Scroll-to-bottom pill** button using IntersectionObserver
+4. **Deep Agent differentiated icons** — Replace hardcoded `"Hammer"` icon in `events.py` with tool-name-aware icons (see §4.5 Track A)
 
 ### Phase 2: Component Decomposition (Refactor)
 
@@ -357,6 +626,7 @@ Structural improvements following AI Elements patterns:
 2. **Create MessageAvatar component** to unify avatar rendering logic
 3. **Create MessageActions component** to separate action buttons from message content
 4. **Role-based message styling** via a wrapper component with `from` prop
+5. **Deep Agent tool-specific renderers** — `TodoListDisplay`, `ContextToolDisplay`, `SubAgentDisplay`, `SummarizeDisplay` (see §4.5 Track B)
 
 ### Phase 3: AI Elements SDK Integration (New Dependencies)
 
@@ -379,7 +649,7 @@ Full integration requiring `@ai-sdk/react` and `ai-elements`:
 
 ---
 
-## 5. Risk Assessment
+## 6. Risk Assessment
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
@@ -391,7 +661,7 @@ Full integration requiring `@ai-sdk/react` and `ai-elements`:
 
 ---
 
-## 6. Recommended Priority
+## 7. Recommended Priority
 
 1. **Immediate** (this PR): Enhanced empty state with prompt suggestions, improved streaming indicator
 2. **Short-term**: Component decomposition following AI Elements patterns (no new deps)
