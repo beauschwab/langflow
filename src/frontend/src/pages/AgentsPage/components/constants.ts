@@ -1,5 +1,53 @@
 export const AVAILABLE_TOOLS = [
   {
+    id: "DataHubSearch",
+    name: "DataHub Search",
+    description:
+      "Search across DataHub entities using keywords and optional filters.",
+  },
+  {
+    id: "DataHubGetMetadata",
+    name: "DataHub Get Metadata",
+    description:
+      "Retrieve full entity metadata from DataHub by URN.",
+  },
+  {
+    id: "DataHubLineage",
+    name: "DataHub Lineage",
+    description:
+      "Explore upstream and downstream lineage for DataHub entities.",
+  },
+  {
+    id: "DataHubAddDocumentation",
+    name: "DataHub Add Documentation",
+    description:
+      "Add or update documentation on DataHub entities and columns.",
+  },
+  {
+    id: "DataHubManageTags",
+    name: "DataHub Manage Tags",
+    description:
+      "Add or remove tags on DataHub entities such as datasets or columns.",
+  },
+  {
+    id: "DataHubManageTerms",
+    name: "DataHub Manage Glossary Terms",
+    description:
+      "Add or remove glossary term associations on DataHub entities.",
+  },
+  {
+    id: "DataHubManageDomains",
+    name: "DataHub Manage Domains",
+    description:
+      "Set or unset business domains on DataHub entities.",
+  },
+  {
+    id: "DataHubManageProperties",
+    name: "DataHub Manage Structured Properties",
+    description:
+      "Upsert or remove structured properties on DataHub entities.",
+  },
+  {
     id: "SharePointFilesLoader",
     name: "SharePoint Files Loader",
     description:

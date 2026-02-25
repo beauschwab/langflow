@@ -28,7 +28,7 @@ class DataHubAddDocumentationComponent(DataHubGraphQLMixin, LCToolComponent):
         "Add or update documentation (description) on a DataHub entity such as "
         "a dataset, dashboard, data job, or column."
     )
-    icon = "file-text"
+    icon = "DataHub"
     name = "DataHubAddDocumentation"
     trace_type = "tool"
 

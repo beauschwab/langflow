@@ -31,7 +31,7 @@ mutation removeTag($input: TagAssociationInput!) {
 class DataHubManageTagsComponent(DataHubGraphQLMixin, LCToolComponent):
     display_name = "DataHub Manage Tags"
     description = "Add or remove tags on DataHub entities such as datasets, dashboards, or columns."
-    icon = "tag"
+    icon = "DataHub"
     name = "DataHubManageTags"
     trace_type = "tool"
 

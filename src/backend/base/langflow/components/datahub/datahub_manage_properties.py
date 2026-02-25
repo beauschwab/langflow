@@ -33,7 +33,7 @@ class DataHubManagePropertiesComponent(DataHubGraphQLMixin, LCToolComponent):
     description = (
         "Upsert or remove structured properties on DataHub entities for custom metadata enrichment."
     )
-    icon = "list"
+    icon = "DataHub"
     name = "DataHubManageProperties"
     trace_type = "tool"
 

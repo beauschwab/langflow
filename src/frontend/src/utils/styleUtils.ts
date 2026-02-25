@@ -279,6 +279,7 @@ import { CloudflareIcon } from "../icons/Cloudflare";
 import { CohereIcon } from "../icons/Cohere";
 import { ComposioIcon } from "../icons/Composio";
 import { ConfluenceIcon } from "../icons/Confluence";
+import { DataHubIcon } from "../icons/DataHub";
 import { CouchbaseIcon } from "../icons/Couchbase";
 import { CrewAiIcon } from "../icons/CrewAI";
 import { DeepSeekIcon } from "../icons/DeepSeek";
@@ -566,6 +567,7 @@ export const SIDEBAR_CATEGORIES = [
 
 export const SIDEBAR_BUNDLES = [
   { display_name: "Confluence", name: "confluence", icon: "Confluence" },
+  { display_name: "DataHub", name: "datahub", icon: "DataHub" },
   { display_name: "Microsoft Outlook", name: "microsoft_outlook", icon: "Outlook" },
   { display_name: "Microsoft Teams", name: "microsoft_teams", icon: "Teams" },
   { display_name: "SharePoint", name: "sharepoint", icon: "SharePoint" },
@@ -746,6 +748,7 @@ export const nodeIconsLucide: iconsType = {
   MistralAI: MistralIcon,
   Upstash: UpstashSvgIcon,
   Confluence: ConfluenceIcon,
+  DataHub: DataHubIcon,
   AIML: AIMLIcon,
   "AI/ML": AIMLIcon,
   GitLoader: GitLoaderIcon,

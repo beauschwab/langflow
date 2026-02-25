@@ -62,7 +62,7 @@ class DataHubLineageComponent(DataHubGraphQLMixin, LCToolComponent):
         "Explore upstream and downstream data lineage for a DataHub entity. "
         "Navigate multi-hop lineage across data pipelines to understand data flows and impact."
     )
-    icon = "git-branch"
+    icon = "DataHub"
     name = "DataHubLineage"
     trace_type = "tool"
 

@@ -31,7 +31,7 @@ mutation unsetDomain($entityUrn: String!) {
 class DataHubManageDomainsComponent(DataHubGraphQLMixin, LCToolComponent):
     display_name = "DataHub Manage Domains"
     description = "Set or unset the domain on DataHub entities to organize data assets under business domains."
-    icon = "layout"
+    icon = "DataHub"
     name = "DataHubManageDomains"
     trace_type = "tool"
 

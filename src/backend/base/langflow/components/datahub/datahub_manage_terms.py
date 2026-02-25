@@ -34,7 +34,7 @@ class DataHubManageTermsComponent(DataHubGraphQLMixin, LCToolComponent):
         "Add or remove glossary terms on DataHub entities to maintain business vocabulary "
         "and data governance standards."
     )
-    icon = "book-open"
+    icon = "DataHub"
     name = "DataHubManageTerms"
     trace_type = "tool"
 

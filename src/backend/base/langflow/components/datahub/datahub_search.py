@@ -60,7 +60,7 @@ query search($input: SearchInput!) {
 class DataHubSearchComponent(DataHubGraphQLMixin, LCToolComponent):
     display_name = "DataHub Search"
     description = "Search across DataHub entities (datasets, dashboards, data jobs, glossary terms, etc.) using keywords and optional filters."
-    icon = "search"
+    icon = "DataHub"
     name = "DataHubSearch"
     trace_type = "tool"
 

@@ -94,7 +94,7 @@ class DataHubGetMetadataComponent(DataHubGraphQLMixin, LCToolComponent):
         "Retrieve comprehensive metadata for any DataHub entity by its URN, "
         "including schema, ownership, tags, glossary terms, domain, and documentation."
     )
-    icon = "database"
+    icon = "DataHub"
     name = "DataHubGetMetadata"
     trace_type = "tool"
 
