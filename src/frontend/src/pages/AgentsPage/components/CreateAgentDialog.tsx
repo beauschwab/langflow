@@ -17,10 +17,8 @@ import { usePostAddAgent } from "@/controllers/API/queries/agents";
 import useAlertStore from "@/stores/alertStore";
 import { AgentCreateType } from "@/types/agents";
 import { useState } from "react";
+import { validate as isUuid } from "uuid";
 import { AVAILABLE_SKILLS, AVAILABLE_TOOLS } from "./constants";
-
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 type CreateAgentDialogProps = {
   open: boolean;
@@ -50,7 +48,7 @@ export default function CreateAgentDialog({
     }
 
     const trimmedSubFlowId = subFlowId.trim();
-    if (trimmedSubFlowId && !UUID_PATTERN.test(trimmedSubFlowId)) {
+    if (trimmedSubFlowId && !isUuid(trimmedSubFlowId)) {
       setSubFlowIdError("Sub-Flow ID must be a valid UUID.");
       setErrorData({ title: "Invalid Sub-Flow ID." });
       return;
