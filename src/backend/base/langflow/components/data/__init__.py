@@ -1,6 +1,7 @@
 from .api_request import APIRequestComponent
 from .csv_to_data import CSVToDataComponent
 from .directory import DirectoryComponent
+from .dremio import DremioExecutorComponent
 from .file import FileComponent
 from .json_to_data import JSONToDataComponent
 from .s3_bucket_uploader import S3BucketUploaderComponent
@@ -12,6 +13,7 @@ __all__ = [
     "APIRequestComponent",
     "CSVToDataComponent",
     "DirectoryComponent",
+    "DremioExecutorComponent",
     "FileComponent",
     "JSONToDataComponent",
     "S3BucketUploaderComponent",
