@@ -43,6 +43,8 @@ class TestDeepAgentComponent(ComponentTestBaseWithoutClient):
             "enable_context_tools": True,
             "enable_sub_agents": False,
             "enable_summarization": False,
+            "enable_skills": False,
+            "skills_directory": "",
             "sub_agent_max_depth": 2,
             "sub_agent_max_iterations": 15,
             "session_id": str(uuid4()),
@@ -160,6 +162,8 @@ class TestDeepAgentComponent(ComponentTestBaseWithoutClient):
         assert "enable_context_tools" in input_names
         assert "enable_sub_agents" in input_names
         assert "enable_summarization" in input_names
+        assert "enable_skills" in input_names
+        assert "skills_directory" in input_names
         assert "sub_agent_max_depth" in input_names
         assert "sub_agent_max_iterations" in input_names
 
@@ -178,3 +182,63 @@ class TestDeepAgentComponent(ComponentTestBaseWithoutClient):
             assert updated_config["sub_agent_max_depth"]["advanced"] is False
         if "sub_agent_max_iterations" in updated_config:
             assert updated_config["sub_agent_max_iterations"]["advanced"] is False
+
+    async def test_skills_tool_creation(self, component_class, default_kwargs, tmp_path):
+        """Phase 5: Test that skill tools are created correctly with valid directory."""
+        # Create a test skill directory
+        skill_dir = tmp_path / "test-skill"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text(
+            "---\nname: test-skill\ndescription: A test skill\n---\n\n# Test\n\n1. Do the thing\n"
+        )
+        (skill_dir / "ref.md").write_text("# Reference\n\nSome reference content.")
+
+        component = await self.component_setup(component_class, default_kwargs)
+        component.skills_directory = str(tmp_path)
+        skills_tools = component._build_skills_tools()
+
+        assert len(skills_tools) == 2
+        tool_names = [t.name for t in skills_tools]
+        assert "load_skill" in tool_names
+        assert "read_skill_file" in tool_names
+
+        # Verify catalog was injected into system prompt
+        assert "Skills system" in component.system_prompt
+        assert "test-skill" in component.system_prompt
+
+    async def test_skills_tool_empty_directory(self, component_class, default_kwargs, tmp_path):
+        """Phase 5: Test skills tool returns empty list for empty directory."""
+        empty_dir = tmp_path / "empty-skills"
+        empty_dir.mkdir()
+
+        component = await self.component_setup(component_class, default_kwargs)
+        component.skills_directory = str(empty_dir)
+        skills_tools = component._build_skills_tools()
+        assert skills_tools == []
+
+    async def test_skills_tool_no_directory(self, component_class, default_kwargs):
+        """Phase 5: Test skills tool returns empty list with no directory configured."""
+        component = await self.component_setup(component_class, default_kwargs)
+        component.skills_directory = ""
+        skills_tools = component._build_skills_tools()
+        assert skills_tools == []
+
+    async def test_skills_toggle_visibility(self, component_class, default_kwargs):
+        """Test that skills_directory becomes visible when enable_skills is toggled ON."""
+        component = await self.component_setup(component_class, default_kwargs)
+        frontend_node = component.to_frontend_node()
+        build_config = frontend_node["data"]["node"]["template"]
+
+        # Toggle skills ON
+        component.set(enable_skills=True)
+        updated_config = await component.update_build_config(build_config, True, "enable_skills")
+
+        if "skills_directory" in updated_config:
+            assert updated_config["skills_directory"]["advanced"] is False
+
+    async def test_component_metadata_includes_skills(self, component_class, default_kwargs):
+        """Test that skills inputs are registered on the component."""
+        component = await self.component_setup(component_class, default_kwargs)
+        input_names = [i.name for i in component.inputs if hasattr(i, "name")]
+        assert "enable_skills" in input_names
+        assert "skills_directory" in input_names

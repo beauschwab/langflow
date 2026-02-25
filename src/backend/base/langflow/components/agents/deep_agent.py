@@ -24,7 +24,7 @@ from langflow.components.helpers.memory import MemoryComponent
 from langflow.custom.custom_component.component import _get_component_toolkit
 from langflow.custom.utils import update_component_build_config
 from langflow.field_typing import Tool
-from langflow.io import BoolInput, DropdownInput, IntInput, MultilineInput, Output
+from langflow.io import BoolInput, DropdownInput, IntInput, MessageTextInput, MultilineInput, Output
 from langflow.logging import logger
 from langflow.schema.dotdict import dotdict
 from langflow.schema.message import Message
@@ -54,6 +54,26 @@ You are an intelligent assistant with access to tools for completing tasks.
 - Use tools when they can help. Don't guess when a tool can provide the answer.
 - If a tool fails, analyze why before retrying with a different approach.
 - Save intermediate results with write_context if they'll be needed later.
+"""
+
+# Appended to the system prompt when skills are enabled
+SKILLS_PROMPT_SECTION = """
+## Skills system
+
+You have access to a skills system that provides domain expertise via progressive disclosure.
+
+### How to use skills
+
+1. **Browse**: Review the skill summaries below.
+2. **Match**: When a task aligns with a skill's description, load that skill first.
+3. **Load**: Call `load_skill(skill_name)` to get detailed instructions.
+4. **Inspect**: Check `available_files` in the response for reference documents.
+5. **Reference**: Use `read_skill_file(skill_name, filename)` for specific documentation.
+6. **Execute**: Apply the skill's guidance to complete the user's task.
+
+### Available skills
+
+{skill_catalog}
 """
 
 
@@ -212,6 +232,23 @@ class DeepAgentComponent(LCToolsAgentComponent):
             advanced=False,
             info="Adds a summarize tool that condenses long text to manage context window limits.",
             real_time_refresh=True,
+        ),
+        # ---- Phase 5: Skills toggle ----
+        BoolInput(
+            name="enable_skills",
+            display_name="Skills",
+            value=False,
+            advanced=False,
+            info="Adds load_skill / read_skill_file tools for progressive domain knowledge loading.",
+            real_time_refresh=True,
+        ),
+        # ---- Advanced: skills directory ----
+        MessageTextInput(
+            name="skills_directory",
+            display_name="Skills Directory",
+            info="Path to directory containing skill subdirectories with SKILL.md files.",
+            value="",
+            advanced=True,
         ),
         # ---- Advanced: sub-agent config ----
         IntInput(
@@ -407,6 +444,36 @@ class DeepAgentComponent(LCToolsAgentComponent):
         )
 
     # -----------------------------------------------------------------------
+    # Phase 5: Skills tools builder
+    # -----------------------------------------------------------------------
+
+    def _build_skills_tools(self) -> list[StructuredTool]:
+        """Build load_skill and read_skill_file tools for progressive skill disclosure.
+
+        Scans the configured skills_directory, creates a SkillStore, and returns
+        the two skill tools. Also injects the skill catalog into the system prompt.
+        """
+        from langflow.base.agents.skill_tools import create_skill_tools
+        from langflow.base.agents.skills import SkillStore
+
+        skills_dir = getattr(self, "skills_directory", "") or ""
+        if not skills_dir:
+            logger.warning("Skills enabled but no skills_directory configured.")
+            return []
+
+        store = SkillStore(skills_dir)
+        count = store.scan()
+        if count == 0:
+            logger.warning("No skills found in directory: %s", skills_dir)
+            return []
+
+        # Inject skill catalog into system prompt
+        catalog = store.get_skill_catalog()
+        self.system_prompt = self.system_prompt + SKILLS_PROMPT_SECTION.format(skill_catalog=catalog)
+
+        return create_skill_tools(store)
+
+    # -----------------------------------------------------------------------
     # Phase 4: Unified message_response integrating all phases
     # -----------------------------------------------------------------------
 
@@ -438,6 +505,10 @@ class DeepAgentComponent(LCToolsAgentComponent):
             # ---- Phase 2: Inject summarization tool ----
             if self.enable_summarization:
                 self.tools.append(self._build_summarize_tool(llm_model))
+
+            # ---- Phase 5: Inject skill tools ----
+            if self.enable_skills:
+                self.tools.extend(self._build_skills_tools())
 
             # ---- Phase 3a: Inject sub-agent delegation tool ----
             if self.enable_sub_agents:
@@ -609,6 +680,7 @@ class DeepAgentComponent(LCToolsAgentComponent):
                 "enable_context_tools",
                 "enable_sub_agents",
                 "enable_summarization",
+                "enable_skills",
             ]
             missing_keys = [key for key in default_keys if key not in build_config]
             if missing_keys:
@@ -622,6 +694,11 @@ class DeepAgentComponent(LCToolsAgentComponent):
                 build_config["sub_agent_max_depth"]["advanced"] = not is_enabled
             if "sub_agent_max_iterations" in build_config:
                 build_config["sub_agent_max_iterations"]["advanced"] = not is_enabled
+
+        if field_name == "enable_skills":
+            is_enabled = field_value in (True, "true", "True")
+            if "skills_directory" in build_config:
+                build_config["skills_directory"]["advanced"] = not is_enabled
 
         if (
             isinstance(self.agent_llm, str)
