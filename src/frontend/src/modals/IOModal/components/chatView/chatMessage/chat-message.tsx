@@ -26,6 +26,7 @@ import { MarkdownField } from "./components/edit-message";
 import EditMessageField from "./components/edit-message-field";
 import FileCardWrapper from "./components/file-card-wrapper";
 import { EditMessageButton } from "./components/message-options";
+import TypingIndicator from "./components/typing-indicator";
 import { convertFiles } from "./helpers/convert-files";
 
 export default function ChatMessage({
@@ -373,10 +374,7 @@ export default function ChatMessage({
                         className="flex w-full flex-col"
                       >
                         {chatMessage === "" && isBuilding && lastMessage ? (
-                          <IconComponent
-                            name="MoreHorizontal"
-                            className="h-8 w-8 animate-pulse"
-                          />
+                          <TypingIndicator />
                         ) : (
                           <div className="w-full">
                             {editMessage ? (
