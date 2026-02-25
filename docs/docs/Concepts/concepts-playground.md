@@ -55,3 +55,23 @@ To post a message to a flow with a specific Session ID with curl, enter the foll
 
 Check your flow's **Playground**. In addition to the messages stored for the Default Session, a new session is started with your custom Session ID.
 
+## Prompt suggestions
+
+When you open the Playground with an empty chat, suggested prompts are displayed as clickable chips below the welcome message. Click a prompt to fill it into the chat input, then modify or send it. Prompt suggestions are only shown when a **Chat Input** component is present in the flow.
+
+## Deep Agent process steps
+
+When using the [Deep Agent](/components-agents) component, the Playground renders intermediate process steps in real-time as the agent works. Each step type has a distinct visual treatment:
+
+| Step | Icon | Description |
+|------|------|-------------|
+| **Planning** | 📋 ListTodo | The agent's task breakdown displayed as a checklist with status indicators (⬜ pending, 🔄 in progress, ✅ done). |
+| **Context save** | 💾 Save | Displays the key name and character count when the agent saves intermediate results to memory. |
+| **Context read** | 📖 BookOpen | Shows the key name when the agent retrieves previously saved context. |
+| **Sub-agent delegation** | 👥 Users | Shows the delegated task, optional context, and the sub-agent's result in a nested card. |
+| **Summarization** | 📝 FileText | Displays the compression ratio (e.g., "2,450 chars → 480 chars") with an expandable summary. |
+| **Tool calls** | 🔨 Hammer | Generic tool execution with JSON input/output display. |
+| **Tool errors** | ❌ AlertCircle | Error details with the failed tool name. |
+
+All steps are displayed within a collapsible **Agent Steps** panel that shows an animated border while the agent is working and a green checkmark when complete.
+
