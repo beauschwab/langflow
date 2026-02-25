@@ -44,13 +44,78 @@ IOModal (new-modal.tsx)
 
 | Aspect | Current Implementation |
 |--------|----------------------|
-| **Streaming** | Native `EventSource` API with SSE, per-message `stream_url` |
+| **Streaming** | Dual-layer SSE: build events via NDJSON + per-vertex token streaming via `EventSource` |
 | **State Management** | Zustand stores (`messagesStore`, `flowStore`, `utilityStore`) |
 | **Markdown** | `react-markdown` + `remark-gfm` + `rehype-mathjax` + `rehype-raw` |
 | **Code Highlighting** | Custom `ChatCodeTabComponent` (simplified code tabs) |
 | **Animations** | Framer Motion (`AnimatePresence`, `motion.div`) |
 | **Scroll Management** | Manual `scrollIntoView` with `instant`/`smooth` behavior |
 | **Message Memoization** | React.memo with shallow prop comparison |
+
+### SSE Streaming Architecture (Backend ↔ Frontend)
+
+The backend uses **two layers of SSE** for chat event streaming:
+
+#### Layer 1: Build Event Stream (NDJSON)
+
+Controls flow execution lifecycle. Configured by `event_delivery` setting (`"polling"` or `"streaming"`).
+
+```
+Frontend                              Backend
+───────                               ───────
+POST /build/{flow_id}/flow      →     start_flow_build() → job_id
+GET  /build/{job_id}/events     →     DisconnectHandlerStreamingResponse
+     ?stream=true                      (media_type: application/x-ndjson)
+                                ←     { event: "vertices_sorted", ... }
+                                ←     { event: "end_vertex", data: { message, stream_url, ... } }
+                                ←     { event: "end", ... }
+```
+
+- **API entry:** `src/backend/base/langflow/api/v1/chat.py` → `build_flow()` (POST) and `get_flow_events_response()` in `api/build.py`
+- **Frontend consumer:** `src/frontend/src/controllers/API/api.tsx` → `performStreamingRequest()` uses Fetch API with `ReadableStream` reader
+- **Config check:** `new-modal.tsx` → `shouldStreamEvents()` reads `config.data?.event_delivery === EventDeliveryType.STREAMING`
+- **Data format:** Newline-delimited JSON (`\n\n` separated), NOT standard SSE `text/event-stream`
+
+#### Layer 2: Per-Vertex Token Stream (SSE)
+
+Streams individual LLM tokens for real-time typing effect. Activated per-vertex when `will_stream` is true.
+
+```
+Frontend                              Backend
+───────                               ───────
+(receives stream_url from             Vertex.build_stream_url() →
+ Layer 1 end_vertex event)              "/api/v1/build/{flow_id}/{vertex_id}/stream"
+
+new EventSource(stream_url)     →     build_vertex_stream() → StreamingResponse
+                                       (media_type: text/event-stream)
+                                ←     data: {"chunk": "Hello"}
+                                ←     data: {"chunk": " world"}
+                                ←     event: close
+```
+
+- **API endpoint:** `src/backend/base/langflow/api/v1/chat.py` → `build_vertex_stream()` (GET, deprecated route)
+- **Backend generator:** `_stream_vertex()` yields `StreamData` events as `{"chunk": "..."}` JSON
+- **Frontend consumer:** `chat-message.tsx` → `streamChunks()` creates `EventSource(url)` and accumulates chunks: `setChatMessage(prev => prev + chunk)`
+- **Data format:** Standard SSE `text/event-stream` with `message`, `error`, and `close` event types
+
+#### How the Two Layers Connect
+
+1. User sends message → `buildFlow({ stream: true })` in `new-modal.tsx`
+2. Backend executes the graph, emitting build events via Layer 1
+3. When a streaming-capable vertex (e.g., ChatOutput connected to an LLM) finishes, the `end_vertex` event includes a `stream_url`
+4. The message is stored with `stream_url` in `messagesStore`
+5. `ChatMessage` component detects `chat.stream_url` and opens an `EventSource` (Layer 2)
+6. LLM tokens flow through Layer 2 in real-time, updating the message text character-by-character
+7. On `close` event, the final message is persisted via `updateChat()`
+
+#### Key Files
+
+| Layer | Backend | Frontend |
+|-------|---------|----------|
+| Build events | `api/v1/chat.py` (L141-196), `api/build.py` (L83-144) | `controllers/API/api.tsx` (L268-349) |
+| Token stream | `api/v1/chat.py` (L486-527), `graph/vertex/vertex_types.py` | `chatMessage/chat-message.tsx` (L72-119) |
+| Config | `services/settings/base.py` (`event_delivery`) | `new-modal.tsx` (L163-165) |
+| Orchestrator | `processing/orchestrator.py` (L49-80) | — |
 
 ---
 
