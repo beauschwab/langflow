@@ -23,9 +23,8 @@ export default function AgentCard({
   const skillBundleSettings =
     agent.config &&
     typeof agent.config === "object" &&
-    ("skill_bundle_settings" in agent.config || "hybrid_settings" in agent.config)
-      ? ((agent.config.skill_bundle_settings ??
-          agent.config.hybrid_settings) as {
+    "skill_bundle_settings" in agent.config
+      ? (agent.config.skill_bundle_settings as {
           curated_skills?: string[];
           sub_flow_id?: string | null;
         })
