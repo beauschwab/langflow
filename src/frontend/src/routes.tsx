@@ -110,14 +110,6 @@ const router = createBrowserRouter(
                     />
                   </Route>
                   <Route path="agents" element={<AgentsPage />} />
-                  <Route
-                    path="store"
-                    element={<CustomNavigate replace to="/agents" />}
-                  />
-                  <Route
-                    path="store/:id/"
-                    element={<CustomNavigate replace to="/agents" />}
-                  />
                 </Route>
                 <Route path="settings" element={<SettingsPage />}>
                   <Route

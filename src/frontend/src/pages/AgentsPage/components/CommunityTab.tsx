@@ -160,7 +160,7 @@ export default function CommunityTab(): JSX.Element {
     return (
       <div className="flex h-64 flex-col items-center justify-center rounded-lg border border-dashed">
         <p className="text-sm text-muted-foreground">
-          The community store is not available.
+          Shared resources are not available.
         </p>
       </div>
     );
@@ -171,7 +171,7 @@ export default function CommunityTab(): JSX.Element {
       <div className="flex w-full flex-col gap-4 p-0">
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            Explore community-shared flows and components.
+            Explore shared flows and components.
           </p>
           <Button
             data-testid="api-key-button-store"

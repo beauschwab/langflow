@@ -9,7 +9,7 @@ import CommunityTab from "./components/CommunityTab";
 import CreateAgentDialog from "./components/CreateAgentDialog";
 import ToolsTab from "./components/ToolsTab";
 
-type TabType = "agents" | "community" | "tools";
+type TabType = "agents" | "shared" | "tools";
 
 export default function AgentsPage(): JSX.Element {
   const [activeTab, setActiveTab] = useState<TabType>("agents");
@@ -60,7 +60,7 @@ export default function AgentsPage(): JSX.Element {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Agents</h1>
           <p className="text-sm text-muted-foreground">
-            Manage agents, browse community resources, and configure tools.
+            Manage agents, browse shared resources, and configure tools.
           </p>
         </div>
         {activeTab === "agents" && (
@@ -83,11 +83,11 @@ export default function AgentsPage(): JSX.Element {
           My Agents
         </button>
         <button
-          className={tabClasses("community")}
-          onClick={() => setActiveTab("community")}
-          data-testid="tab-community"
+          className={tabClasses("shared")}
+          onClick={() => setActiveTab("shared")}
+          data-testid="tab-shared"
         >
-          Community
+          Shared
         </button>
         <button
           className={tabClasses("tools")}
@@ -158,7 +158,7 @@ export default function AgentsPage(): JSX.Element {
           </div>
         )}
 
-        {activeTab === "community" && <CommunityTab />}
+        {activeTab === "shared" && <CommunityTab />}
 
         {activeTab === "tools" && <ToolsTab />}
       </div>
