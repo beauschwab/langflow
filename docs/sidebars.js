@@ -68,6 +68,8 @@ module.exports = {
       items: [
         "Agents/agents-overview",
         "Agents/agent-tool-calling-agent-component",
+        "Agents/agents-deep-agent-skills",
+        "Agents/agents-skills-architecture",
       ],
     },
     {
