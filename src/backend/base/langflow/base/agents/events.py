@@ -39,6 +39,16 @@ DEEP_AGENT_TOOL_DISPLAY: dict[str, dict[str, str]] = {
         "title_start": "Summarizing",
         "title_end": "Summarized",
     },
+    "load_skill": {
+        "icon": "BookMarked",
+        "title_start": "Loading skill",
+        "title_end": "Skill loaded",
+    },
+    "read_skill_file": {
+        "icon": "FileSearch",
+        "title_start": "Reading skill reference",
+        "title_end": "Reference loaded",
+    },
 }
 
 
