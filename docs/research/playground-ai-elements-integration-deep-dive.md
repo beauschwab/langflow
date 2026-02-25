@@ -117,6 +117,59 @@ new EventSource(stream_url)     →     build_vertex_stream() → StreamingRespo
 | Config | `services/settings/base.py` (`event_delivery`) | `new-modal.tsx` (L163-165) |
 | Orchestrator | `processing/orchestrator.py` (L49-80) | — |
 
+### Intermediate Steps: Tool Calls & Sub-Agent Rendering
+
+Agent intermediate steps (tool calls, sub-agent invocations) render in real-time through a **partial message update** mechanism that reuses the same message ID:
+
+#### Backend: Event Processing Pipeline
+
+1. **Agent streams events** — `base/agents/agent.py` initializes a message with `properties={"state": "partial"}` and empty `content_blocks`, then calls LangChain's `runnable.astream_events()` (v2 streaming API).
+
+2. **Event handlers map LangChain events to content blocks** — `base/agents/events.py` contains `process_agent_events()` which routes events:
+   - `on_tool_start` → Creates a `ToolContent` object (`type: "tool_use"`) with `name`, `tool_input`, and appends it to `agent_message.content_blocks[0].contents`. Calls `send_message()` to emit.
+   - `on_tool_end` → Updates the same `ToolContent` with `output` and `duration`. Calls `send_message()` again.
+   - `on_tool_error` → Updates with `error` field. Calls `send_message()`.
+   - `on_chain_start/end/stream` → Handles sub-agent chain events similarly.
+
+3. **Message emitted via EventManager** — `custom_component/component.py`'s `send_message()` stores the message in the database and calls `EventManager.on_message()`, which serializes the message as `{"event": "add_message", "data": {...}}` and puts it into an async queue.
+
+4. **Same message ID reused** — Each `send_message()` call uses the **same message ID** throughout the agent's execution. This is the critical mechanism that enables partial updates rather than creating duplicate messages.
+
+#### Frontend: Partial Update & Rendering
+
+5. **Store merges partial updates** — `stores/messagesStore.ts`'s `addMessage()` checks if a message with the same ID already exists. If so, it calls `updateMessagePartial()` which merges the incoming data (including updated `content_blocks`) with the existing message via spread operator.
+
+6. **ContentBlockDisplay renders streaming state** — `ContentBlockDisplay.tsx` reads the message's `state` property:
+   - `state === "partial"` → Shows the latest step's header/icon (e.g., tool name with hammer icon), displays `<BorderTrail>` animated glow, and keeps the block title visible.
+   - `state !== "partial"` (complete) → Shows a green checkmark icon with "Finished" header, hides the block title.
+   - Each new `ToolContent` item in `content_blocks[0].contents` animates in via Framer Motion as it arrives.
+
+7. **ContentDisplay renders tool_use type** — `ContentDisplay.tsx` handles `type: "tool_use"` by rendering:
+   - Tool input as formatted JSON code block
+   - Tool output as markdown (if string) or JSON (if object)
+   - Tool error with red styling if present
+
+#### Data Schema
+
+```typescript
+// ToolContent (backend: schema/content_types.py)
+{
+  type: "tool_use",
+  name: "search_web",        // Tool name
+  tool_input: { query: "..." }, // Input passed to tool
+  output: "...",              // Result (added on_tool_end)
+  error: null,                // Error if failed
+  duration: 1250,             // Execution time in ms
+  header: { title: "Searching web", icon: "Search" }
+}
+
+// Message update flow (same ID, incremental content_blocks)
+// 1st emit: { id: "msg-1", content_blocks: [{contents: [tool1_start]}], state: "partial" }
+// 2nd emit: { id: "msg-1", content_blocks: [{contents: [tool1_done]}], state: "partial" }
+// 3rd emit: { id: "msg-1", content_blocks: [{contents: [tool1_done, tool2_start]}], state: "partial" }
+// Final:   { id: "msg-1", content_blocks: [{contents: [tool1_done, tool2_done]}], state: "complete" }
+```
+
 ---
 
 ## 2. AI Elements SDK Component Mapping
