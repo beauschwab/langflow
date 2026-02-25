@@ -9,13 +9,13 @@ export const AVAILABLE_TOOLS = [
 
 export const AVAILABLE_SKILLS = [
   {
-    id: "context-bundle-domain",
-    name: "Domain Context Bundle",
-    description: "Attach reusable domain knowledge and prompt constraints.",
+    id: "playwright-skill",
+    name: "Playwright Skill",
+    description: "Browser automation and UI validation workflows.",
   },
   {
-    id: "tool-access-governance",
-    name: "Tool Access Governance",
-    description: "Apply curated tool allowlists for safer agent execution.",
+    id: "frontend-design-system-compliance",
+    name: "Frontend Design System Compliance",
+    description: "Design-system-safe frontend implementation guidance.",
   },
 ];

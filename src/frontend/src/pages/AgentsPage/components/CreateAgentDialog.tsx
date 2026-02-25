@@ -19,6 +19,9 @@ import { AgentCreateType } from "@/types/agents";
 import { useState } from "react";
 import { AVAILABLE_SKILLS, AVAILABLE_TOOLS } from "./constants";
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 type CreateAgentDialogProps = {
   open: boolean;
   onClose: () => void;
@@ -34,6 +37,7 @@ export default function CreateAgentDialog({
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [subFlowId, setSubFlowId] = useState("");
+  const [subFlowIdError, setSubFlowIdError] = useState("");
   const setSuccessData = useAlertStore((state) => state.setSuccessData);
   const setErrorData = useAlertStore((state) => state.setErrorData);
 
@@ -46,6 +50,13 @@ export default function CreateAgentDialog({
     }
 
     const trimmedSubFlowId = subFlowId.trim();
+    if (trimmedSubFlowId && !UUID_PATTERN.test(trimmedSubFlowId)) {
+      setSubFlowIdError("Sub-Flow ID must be a valid UUID.");
+      setErrorData({ title: "Invalid Sub-Flow ID." });
+      return;
+    }
+
+    setSubFlowIdError("");
     const hybridSettings =
       selectedSkills.length > 0 || trimmedSubFlowId
         ? {
@@ -59,7 +70,7 @@ export default function CreateAgentDialog({
       name: name.trim(),
       description: description.trim() || null,
       agent_type: agentType.trim() || null,
-      config: hybridSettings ? { hybrid_settings: hybridSettings } : {},
+      config: hybridSettings ? { hybrid_settings: hybridSettings } : undefined,
       tools: selectedTools,
       tags: hybridSettings ? ["hybrid"] : [],
     };
@@ -73,6 +84,7 @@ export default function CreateAgentDialog({
         setSelectedTools([]);
         setSelectedSkills([]);
         setSubFlowId("");
+        setSubFlowIdError("");
         onClose();
       },
       onError: (err: any) => {
@@ -123,7 +135,7 @@ export default function CreateAgentDialog({
             <Input
               id="agent-type"
               data-testid="agent-type-input"
-              placeholder="e.g., tool_calling, lc_agent"
+              placeholder="e.g., tool_calling, lc_agent, deep_agent"
               value={agentType}
               onChange={(e) => setAgentType(e.target.value)}
             />
@@ -211,8 +223,16 @@ export default function CreateAgentDialog({
               data-testid="agent-sub-flow-id-input"
               placeholder="Optional: Flow ID for published Sub-Flow skill"
               value={subFlowId}
-              onChange={(e) => setSubFlowId(e.target.value)}
+              onChange={(e) => {
+                setSubFlowId(e.target.value);
+                if (subFlowIdError) {
+                  setSubFlowIdError("");
+                }
+              }}
             />
+            {subFlowIdError ? (
+              <p className="text-xs text-destructive">{subFlowIdError}</p>
+            ) : null}
           </div>
         </div>
         <DialogFooter>
